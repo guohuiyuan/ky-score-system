@@ -321,9 +321,12 @@ func SubmitScore(c *gin.Context) {
 
 	totalScore, _ := strconv.Atoi(c.PostForm("total_score"))
 	examID, _ := strconv.Atoi(c.PostForm("exam_id"))
-	ip := c.GetHeader("X-Forwarded-For")
-	if ip != "" {
-		ip = strings.Split(ip, ",")[0]
+	ip := c.GetHeader("CF-Connecting-IP")
+	if ip == "" {
+		ip = c.GetHeader("X-Forwarded-For")
+		if ip != "" {
+			ip = strings.TrimSpace(strings.Split(ip, ",")[0])
+		}
 	}
 	if ip == "" {
 		ip = c.GetHeader("X-Real-IP")

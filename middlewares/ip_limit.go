@@ -16,12 +16,16 @@ type IPRecord struct {
 
 var ipCache sync.Map
 
-// 获取真实 IP
+// 获取真实 IP（兼容 Cloudflare/Zeabur、Nginx 等多种代理环境）
 func getClientIP(c *gin.Context) string {
-	// 1. 尝试从 X-Forwarded-For 获取（可能包含多个 IP，取第一个非内网 IP 更准确，这里简单取第一个）
+	// 1. Cloudflare / Zeabur 环境：优先读取 CF-Connecting-IP
+	if cfIP := c.GetHeader("CF-Connecting-IP"); cfIP != "" {
+		return cfIP
+	}
+
+	// 2. 尝试从 X-Forwarded-For 获取
 	xForwardedFor := c.GetHeader("X-Forwarded-For")
 	if xForwardedFor != "" {
-		// X-Forwarded-For 格式: client, proxy1, proxy2
 		ips := strings.Split(xForwardedFor, ",")
 		if len(ips) > 0 {
 			ip := strings.TrimSpace(ips[0])
@@ -31,13 +35,12 @@ func getClientIP(c *gin.Context) string {
 		}
 	}
 
-	// 2. 尝试从 X-Real-IP 获取
-	xRealIP := c.GetHeader("X-Real-IP")
-	if xRealIP != "" {
+	// 3. 尝试从 X-Real-IP 获取
+	if xRealIP := c.GetHeader("X-Real-IP"); xRealIP != "" {
 		return xRealIP
 	}
 
-	// 3. 降级为 Gin 解析的值
+	// 4. 降级为 Gin 解析的值
 	return c.ClientIP()
 }
 
