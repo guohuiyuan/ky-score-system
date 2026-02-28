@@ -13,7 +13,7 @@ import (
 	"gorm.io/datatypes"
 )
 
-// IndexPage 前台排行榜主页
+// IndexPage 前台排行榜主页（支持后端筛选 + 重新排名）
 func IndexPage(c *gin.Context) {
 	// 获取用户提供的密钥
 	secretKey, err := c.Cookie("user_secret_key")
@@ -25,65 +25,105 @@ func IndexPage(c *gin.Context) {
 	// 检查该密钥是否存在于数据库中
 	var userRecord models.ScoreRecord
 	if err := config.DB.Where("secret_key = ?", secretKey).First(&userRecord).Error; err != nil {
-		// 密钥无效，清除 Cookie 并重定向回登录页
 		c.SetCookie("user_secret_key", "", -1, "/", "", false, true)
 		c.Redirect(http.StatusFound, "/ky/login")
 		return
 	}
 
-	var records []models.ScoreRecord
-	// 只查询已通过审核的成绩，按总分降序排列
-	config.DB.Where("status = ?", "approved").Order("total_score desc").Find(&records)
+	var allRecords []models.ScoreRecord
+	config.DB.Where("status = ?", "approved").Order("total_score desc").Find(&allRecords)
 
-	// 获取考试配置以提取动态表头 (为了简化，这里默认取第一条配置)
+	// 获取考试配置
 	var examConfig models.ExamConfig
 	config.DB.First(&examConfig)
 
-	// 解析动态表头
-	// 例如: [{"Key":"math", "Label":"数学"}, {"Key":"politics", "Label":"政治"}]
-	var dynamicHeaders []map[string]interface{}
+	var dynamicFields []map[string]interface{}
 	if len(examConfig.Fields) > 0 {
-		json.Unmarshal(examConfig.Fields, &dynamicHeaders)
+		json.Unmarshal(examConfig.Fields, &dynamicFields)
 	}
 
-	// 组装供前端渲染的数据结构
+	// 收集当前的筛选参数
+	activeFilters := make(map[string]string)
+	for _, field := range dynamicFields {
+		if field["Type"] == "select" {
+			key := field["Key"].(string)
+			val := c.Query(key)
+			if val != "" {
+				activeFilters[key] = val
+			}
+		}
+	}
+
+	// 在内存中对已排序记录进行筛选
 	type RenderRecord struct {
 		Rank        int
 		Nickname    string
 		TotalScore  int
 		Status      string
+		SecretKey   string
 		DynamicData map[string]interface{}
 	}
 
-	var renderRecords []RenderRecord
-	for i, r := range records {
+	var filteredRecords []RenderRecord
+	totalApproved := len(allRecords)
+
+	for _, r := range allRecords {
 		var dynData map[string]interface{}
-		// 将存入数据库的 JSON 反序列化为 map，方便模板里用 {{index .DynamicData "xxx"}} 读取
 		if len(r.DynamicData) > 0 {
 			json.Unmarshal(r.DynamicData, &dynData)
 		}
 
-		renderRecords = append(renderRecords, RenderRecord{
-			Rank:        i + 1,
-			Nickname:    r.Nickname,
-			TotalScore:  r.TotalScore,
-			Status:      r.Status,
-			DynamicData: dynData,
-		})
+		// 逐个检查筛选条件
+		match := true
+		for filterKey, filterVal := range activeFilters {
+			if dynData == nil {
+				match = false
+				break
+			}
+			storedVal := ""
+			if v, ok := dynData[filterKey]; ok {
+				switch tv := v.(type) {
+				case string:
+					storedVal = tv
+				case float64:
+					storedVal = strconv.FormatFloat(tv, 'f', -1, 64)
+				}
+			}
+			if storedVal != filterVal {
+				match = false
+				break
+			}
+		}
+
+		if match {
+			filteredRecords = append(filteredRecords, RenderRecord{
+				Nickname:    r.Nickname,
+				TotalScore:  r.TotalScore,
+				Status:      r.Status,
+				SecretKey:   r.SecretKey,
+				DynamicData: dynData,
+			})
+		}
+	}
+
+	// 重新排名（在筛选结果内）
+	for i := range filteredRecords {
+		filteredRecords[i].Rank = i + 1
 	}
 
 	// 从 JSON 配置文件加载方向别名映射
 	dirAlias := config.GetDirAlias()
 
-	// 渲染 HTML 模板
 	c.HTML(http.StatusOK, "public/index.tmpl", gin.H{
-		"Title":          examConfig.MajorName + " 实时成绩排名榜",
-		"ExamName":       examConfig.MajorName,
-		"Records":        renderRecords,
-		"DynamicHeaders": dynamicHeaders,
-		"TotalCount":     len(records),
-		"CurrentUser":    userRecord,
-		"DirAlias":       dirAlias,
+		"Title":         examConfig.MajorName + " 实时成绩排名榜",
+		"ExamName":      examConfig.MajorName,
+		"Records":       filteredRecords,
+		"DynamicFields": dynamicFields,
+		"TotalCount":    totalApproved,
+		"FilteredCount": len(filteredRecords),
+		"CurrentUser":   userRecord,
+		"DirAlias":      dirAlias,
+		"ActiveFilters": activeFilters,
 	})
 }
 

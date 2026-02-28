@@ -2,352 +2,194 @@
 {{template "header.tmpl" .}}
 
 <style>
-    /* ===== 主卡片容器 ===== */
-    .rank-card {
-        border: none;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 8px 30px rgba(0, 51, 160, 0.08);
-    }
+    .rank-card { border: none; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,51,160,0.07); }
 
-    /* ===== 渐变色页头 ===== */
+    /* 页头 */
     .rank-hero {
-        background: linear-gradient(135deg, var(--hit-blue) 0%, #0055ff 60%, #4d8fff 100%);
-        color: white;
-        padding: 1.8rem 2rem 1.5rem;
+        background: linear-gradient(135deg, var(--hit-blue) 0%, #1a5cff 100%);
+        color: white; padding: 1.5rem 1.8rem;
     }
-    .rank-hero h4 { font-weight: 800; letter-spacing: 1px; margin-bottom: 2px; }
-    .rank-hero .subtitle { opacity: 0.85; font-size: 0.82rem; }
-    .rank-hero .user-pill {
-        background: rgba(255,255,255,0.18);
-        backdrop-filter: blur(6px);
-        border: 1px solid rgba(255,255,255,0.25);
-        border-radius: 10px;
-        padding: 8px 16px;
-        font-size: 0.85rem;
-        color: white;
+    .rank-hero h4 { font-weight: 700; margin: 0; }
+    .rank-hero .sub { opacity: 0.8; font-size: 0.8rem; margin-top: 2px; }
+    .user-pill {
+        background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 8px; padding: 6px 14px; font-size: 0.82rem; color: white;
     }
-    .rank-hero .user-pill .score { font-weight: 700; font-size: 1.1rem; }
+    .user-pill .score { font-weight: 700; font-size: 1.05rem; }
 
-    /* ===== 统计摘要栏 ===== */
-    .stats-bar {
-        background: #f8fafd;
-        border-bottom: 1px solid #eef2f7;
-        padding: 12px 24px;
-        display: flex;
-        align-items: center;
-        gap: 24px;
-        font-size: 0.88rem;
-        color: #555;
-        flex-wrap: wrap;
+    /* 筛选栏 */
+    .filter-bar {
+        background: #f8fafd; border-bottom: 1px solid #eef2f7;
+        padding: 12px 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     }
-    .stats-bar .stat-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
+    .filter-bar select {
+        border: 1px solid #d2e3fc; border-radius: 6px; padding: 5px 28px 5px 10px;
+        font-size: 0.82rem; background-color: #fff; color: #333; font-weight: 500;
+        appearance: none; cursor: pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23555' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 8px center; background-size: 10px;
     }
-    .stats-bar .stat-item .num {
-        font-weight: 700;
-        color: var(--hit-blue);
-        font-size: 1rem;
+    .filter-bar select:focus { border-color: var(--hit-blue); outline: none; box-shadow: 0 0 0 3px rgba(0,51,160,0.08); }
+    .filter-bar .filter-label { font-size: 0.78rem; color: #888; white-space: nowrap; }
+    .filter-bar .badge { font-size: 0.75rem; }
+
+    /* 统计 */
+    .stats-strip {
+        padding: 8px 20px; font-size: 0.8rem; color: #777;
+        display: flex; justify-content: space-between; align-items: center;
+        border-bottom: 1px solid #f0f2f5; background: white;
     }
 
-    /* ===== DataTables 精调 ===== */
-    .dataTables_wrapper .row { align-items: center; margin-bottom: 12px; }
-    .dataTables_filter input {
-        border: 1px solid #d2e3fc;
-        border-radius: 8px;
-        padding: 6px 12px;
-        transition: border-color 0.2s;
-    }
-    .dataTables_filter input:focus { border-color: var(--hit-blue); box-shadow: 0 0 0 3px rgba(0,51,160,0.08); }
-    .page-item.active .page-link { background-color: var(--hit-blue); border-color: var(--hit-blue); }
-    .dataTables_length select { border-radius: 6px; border: 1px solid #ddd; padding: 4px 8px; }
-    .dataTables_info { font-size: 0.82rem; color: #888; }
-
-    /* ===== 表格主体 ===== */
-    .table-responsive {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-    #rankTable {
-        border-collapse: separate;
-        border-spacing: 0;
-    }
+    /* 表格 */
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #rankTable { border-collapse: collapse; width: 100%; }
     #rankTable thead th {
-        background: #1a3a6c;
-        color: #e8effa;
-        font-weight: 600;
-        font-size: 0.82rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 12px 14px;
-        border: none;
-        position: sticky;
-        top: 0;
-        z-index: 2;
-    }
-    #rankTable tbody tr {
-        transition: background 0.15s ease;
-    }
-    #rankTable tbody tr:nth-child(even) {
-        background: #f9fbfe;
-    }
-    #rankTable tbody tr:hover {
-        background: #edf3ff !important;
+        background: #1a3a6c; color: #d6e4f5; font-weight: 600; font-size: 0.78rem;
+        padding: 10px 12px; border: none; white-space: nowrap; text-align: center;
     }
     #rankTable tbody td {
-        padding: 10px 14px;
-        font-size: 0.88rem;
-        color: #333;
-        border-bottom: 1px solid #f0f2f5;
-        white-space: nowrap;
-        vertical-align: middle;
+        padding: 9px 12px; font-size: 0.84rem; color: #333;
+        border-bottom: 1px solid #f0f2f5; white-space: nowrap; text-align: center; vertical-align: middle;
     }
+    #rankTable tbody tr:nth-child(even) { background: #f9fbfe; }
+    #rankTable tbody tr:hover { background: #edf3ff; }
+    #rankTable tbody tr.row-me { background: #fff8e1 !important; }
+
+    /* 排名奖牌 */
     .rank-num {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        font-weight: 700;
-        font-size: 0.85rem;
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 28px; height: 28px; border-radius: 6px; font-weight: 700; font-size: 0.82rem;
     }
-    .rank-1 { background: linear-gradient(135deg, #FFD700, #FFA500); color: white; }
-    .rank-2 { background: linear-gradient(135deg, #C0C0C0, #A0A0A0); color: white; }
-    .rank-3 { background: linear-gradient(135deg, #CD7F32, #A0522D); color: white; }
-    .rank-default { background: #f0f2f5; color: #666; }
+    .rk-1 { background: linear-gradient(135deg,#FFD700,#FFA500); color: #fff; }
+    .rk-2 { background: linear-gradient(135deg,#C0C0C0,#999); color: #fff; }
+    .rk-3 { background: linear-gradient(135deg,#CD7F32,#A0522D); color: #fff; }
+    .rk-n { background: #f0f2f5; color: #666; }
 
-    .total-score {
-        font-weight: 800;
-        font-size: 1rem;
-        color: var(--hit-blue);
+    .total-score { font-weight: 800; color: var(--hit-blue); font-size: 0.95rem; }
+    .dir-badge {
+        display: inline-block; max-width: 110px; overflow: hidden; text-overflow: ellipsis;
+        white-space: nowrap; font-size: 0.76rem; padding: 3px 8px; border-radius: 4px;
+        background: #eef3fb; color: #2c5282; border: 1px solid #d2e3fc; font-weight: 500;
     }
+    .me-tag { background: #f0b800; color: #fff; font-size: 0.65rem; padding: 1px 5px; border-radius: 3px; margin-left: 4px; font-weight: 600; }
+    .status-dot { font-size: 0.72rem; font-weight: 600; }
+    .st-ok { color: #28a745; }
+    .st-rej { color: #dc3545; }
+    .st-pen { color: #aaa; }
 
-    .truncate-badge {
-        max-width: 120px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        display: inline-block;
-        font-weight: 500;
-        font-size: 0.8rem;
-        padding: 4px 10px;
-        border-radius: 20px;
-        background: #eef3fb;
-        color: #2c5282;
-        border: 1px solid #d2e3fc;
-    }
-
-    .status-badge {
-        font-size: 0.72rem;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-weight: 600;
-        letter-spacing: 0.3px;
-    }
-
-    /* ===== 筛选下拉框 ===== */
-    .col-search-input {
-        width: 100%;
-        padding: 5px 24px 5px 8px;
-        border: 1px solid #d2e3fc;
-        border-radius: 20px;
-        font-size: 0.78rem;
-        margin-top: 6px;
-        color: #495057;
-        background-color: #f8fbff;
-        font-weight: 500;
-        outline: none;
-        transition: all 0.2s ease;
-        cursor: pointer;
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 8px center;
-        background-size: 9px;
-    }
-    .col-search-input:focus {
-        border-color: var(--hit-blue);
-        box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.1);
-        background-color: white;
-    }
-
-    /* ===== 手机端适配 ===== */
     @media (max-width: 768px) {
-        .rank-hero { padding: 1.2rem 1rem 1rem; }
-        .rank-hero h4 { font-size: 1.1rem; }
-        .stats-bar { padding: 10px 16px; gap: 16px; font-size: 0.8rem; }
-        #rankTable thead th { font-size: 0.72rem; padding: 8px 10px; }
-        #rankTable tbody td { font-size: 0.78rem; padding: 8px 10px; }
-        .rank-num { width: 26px; height: 26px; font-size: 0.75rem; }
-        .truncate-badge { max-width: 90px; font-size: 0.72rem; padding: 3px 8px; }
+        .rank-hero { padding: 1rem; }
+        .rank-hero h4 { font-size: 1rem; }
+        .filter-bar { padding: 10px 12px; gap: 6px; }
+        .filter-bar select { font-size: 0.76rem; padding: 4px 24px 4px 8px; }
+        #rankTable thead th { font-size: 0.7rem; padding: 8px 8px; }
+        #rankTable tbody td { font-size: 0.76rem; padding: 7px 8px; }
+        .rank-num { width: 24px; height: 24px; font-size: 0.72rem; }
+        .dir-badge { max-width: 80px; font-size: 0.68rem; }
     }
 </style>
 
 <div class="rank-card card mb-4">
-    <!-- 渐变色页头 -->
+    <!-- 页头 -->
     <div class="rank-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-                <h4 class="mb-1"><i class="bi bi-trophy-fill me-2" style="opacity:0.9"></i>{{.ExamName}}</h4>
-                <div class="subtitle">2026 年考研成绩实时排行榜 · 支持多维度组合筛选</div>
+                <h4><i class="bi bi-trophy-fill me-2" style="opacity:0.85"></i>{{.ExamName}}</h4>
+                <div class="sub">2026 年考研成绩实时排行榜</div>
             </div>
             <div class="d-flex align-items-center gap-2">
                 {{if .CurrentUser}}
                 <div class="user-pill">
-                    <i class="bi bi-person-check-fill me-1"></i>
-                    {{.CurrentUser.Nickname}}
-                    <span class="score ms-2">{{.CurrentUser.TotalScore}}</span>
+                    <i class="bi bi-person-check-fill me-1"></i>{{.CurrentUser.Nickname}}
+                    <span class="score ms-1">{{.CurrentUser.TotalScore}}</span>
                 </div>
                 {{end}}
-                <button class="btn btn-sm text-white d-flex align-items-center gap-1" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); border-radius:8px;" onclick="location.reload()">
+                <button class="btn btn-sm text-white" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:0.8rem;" onclick="location.reload()">
                     <i class="bi bi-arrow-clockwise"></i> 刷新
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- 统计摘要栏 -->
-    <div class="stats-bar">
-        <div class="stat-item">
-            <i class="bi bi-people-fill" style="color:var(--hit-blue)"></i>
-            总提交 <span class="num">{{.TotalCount}}</span> 人
-        </div>
-        <div class="stat-item">
-            <i class="bi bi-info-circle-fill text-success"></i>
-            <span style="color:#666">数据仅供参考，排名实时更新</span>
-        </div>
+    <!-- 筛选栏 -->
+    <form method="GET" action="/ky/" class="filter-bar" id="filterForm">
+        <span class="filter-label"><i class="bi bi-funnel me-1"></i>筛选:</span>
+        {{range .DynamicFields}}
+            {{if eq .Type "select"}}
+            {{$key := .Key}}
+            <select name="{{$key}}" onchange="document.getElementById('filterForm').submit()">
+                <option value="">全部{{.Label}}</option>
+                {{range .Options}}
+                    {{$optStr := .}}
+                    <option value="{{$optStr}}" {{if eq (index $.ActiveFilters $key) $optStr}}selected{{end}}>
+                        {{if and (eq $key "direction") (index $.DirAlias $optStr)}}{{index $.DirAlias $optStr}}{{else}}{{$optStr}}{{end}}
+                    </option>
+                {{end}}
+            </select>
+            {{end}}
+        {{end}}
+        <a href="/ky/" class="btn btn-sm btn-outline-secondary" style="font-size:0.78rem;border-radius:6px;"><i class="bi bi-x-lg"></i> 重置</a>
+    </form>
+
+    <!-- 统计条 -->
+    <div class="stats-strip">
+        <span><i class="bi bi-people-fill me-1" style="color:var(--hit-blue)"></i>总提交 <strong style="color:var(--hit-blue)">{{.TotalCount}}</strong> 人</span>
+        <span>当前显示 <strong style="color:var(--hit-blue)">{{.FilteredCount}}</strong> 人</span>
     </div>
 
-    <!-- 表格主体 -->
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table mb-0" id="rankTable">
-                <thead>
-                    <tr>
-                        <th class="text-center" style="width:60px">排名</th>
-                        <th class="text-start">ID</th>
-                        {{range .DynamicHeaders}}
-                            <th class="text-center">{{.Label}}</th>
-                        {{end}}
-                        <th class="text-center" style="color:#ffd700">总分</th>
-                        <th class="text-center">状态</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{if not .Records}}
-                    <tr><td colspan="20" class="text-center text-muted py-5"><i class="bi bi-inbox" style="font-size:2rem"></i><br>暂无数据</td></tr>
+    <!-- 表格 -->
+    <div class="table-responsive">
+        <table id="rankTable">
+            <thead>
+                <tr>
+                    <th style="width:50px">排名</th>
+                    <th class="text-start">ID (昵称)</th>
+                    {{range .DynamicFields}}
+                        <th>{{.Label}}</th>
                     {{end}}
-
-                    {{range $index, $row := .Records}}
-                    <tr>
-                        <td class="text-center">
-                            {{if eq $row.Rank 1}}<span class="rank-num rank-1">1</span>
-                            {{else if eq $row.Rank 2}}<span class="rank-num rank-2">2</span>
-                            {{else if eq $row.Rank 3}}<span class="rank-num rank-3">3</span>
-                            {{else}}<span class="rank-num rank-default">{{$row.Rank}}</span>
-                            {{end}}
+                    <th style="color:#ffd700">总分</th>
+                    <th>状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{if not .Records}}
+                <tr><td colspan="20" class="text-center text-muted" style="padding:40px 0"><i class="bi bi-inbox" style="font-size:1.5rem"></i><br>暂无数据</td></tr>
+                {{end}}
+                {{range $i, $row := .Records}}
+                <tr {{if eq $row.SecretKey $.CurrentUser.SecretKey}}class="row-me"{{end}}>
+                    <td>
+                        {{if eq $row.Rank 1}}<span class="rank-num rk-1">1</span>
+                        {{else if eq $row.Rank 2}}<span class="rank-num rk-2">2</span>
+                        {{else if eq $row.Rank 3}}<span class="rank-num rk-3">3</span>
+                        {{else}}<span class="rank-num rk-n">{{$row.Rank}}</span>{{end}}
+                    </td>
+                    <td class="text-start fw-semibold">
+                        {{$row.Nickname}}
+                        {{if eq $row.SecretKey $.CurrentUser.SecretKey}}<span class="me-tag">我</span>{{end}}
+                    </td>
+                    {{range $.DynamicFields}}
+                        <td>
+                            {{$val := index $row.DynamicData .Key}}
+                            {{if and $val (eq .Key "direction")}}
+                                <span class="dir-badge" title="{{$val}}">
+                                    {{if index $.DirAlias $val}}{{index $.DirAlias $val}}{{else}}{{$val}}{{end}}
+                                </span>
+                            {{else if $val}}{{$val}}
+                            {{else}}<span class="text-muted">-</span>{{end}}
                         </td>
-                        <td class="text-start fw-semibold">{{$row.Nickname}}</td>
-
-                        {{range $.DynamicHeaders}}
-                            <td class="text-center">
-                                {{$val := index $row.DynamicData .Key}}
-                                {{if and $val (eq .Key "direction")}}
-                                    <span class="truncate-badge" title="{{$val}}">
-                                        {{if index $.DirAlias $val}}{{index $.DirAlias $val}}{{else}}{{$val}}{{end}}
-                                    </span>
-                                {{else if $val}}
-                                    {{$val}}
-                                {{else}}
-                                    <span class="text-muted">-</span>
-                                {{end}}
-                            </td>
-                        {{end}}
-
-                        <td class="text-center total-score">{{$row.TotalScore}}</td>
-
-                        <td class="text-center">
-                            {{if eq $row.Status "approved"}}
-                                <span class="status-badge bg-success bg-opacity-10 text-success">● 已核验</span>
-                            {{else if eq $row.Status "rejected"}}
-                                <span class="status-badge bg-danger bg-opacity-10 text-danger">✖ 已驳回</span>
-                            {{else}}
-                                <span class="status-badge bg-secondary bg-opacity-10 text-secondary">○ 待核验</span>
-                            {{end}}
-                        </td>
-                    </tr>
                     {{end}}
-                </tbody>
-            </table>
-        </div>
+                    <td class="total-score">{{$row.TotalScore}}</td>
+                    <td>
+                        {{if eq $row.Status "approved"}}<span class="status-dot st-ok">● 已核验</span>
+                        {{else if eq $row.Status "rejected"}}<span class="status-dot st-rej">✖ 已驳回</span>
+                        {{else}}<span class="status-dot st-pen">○ 待核验</span>{{end}}
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
     </div>
 </div>
-
-<!-- 引入 jQuery 和 DataTables -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-
-<script>
-$(document).ready(function() {
-    // 在表头下方克隆一行过滤行
-    $('#rankTable thead tr').clone(true).addClass('filters').appendTo('#rankTable thead');
-
-    var table = $('#rankTable').DataTable({
-        "order": [],
-        "pageLength": 50,
-        "language": {
-            "sProcessing":   "处理中...",
-            "sLengthMenu":   "每页 _MENU_ 项",
-            "sZeroRecords":  "没有匹配结果",
-            "sInfo":         "第 _START_-_END_ 项，共 _TOTAL_ 项",
-            "sInfoEmpty":    "共 0 项",
-            "sInfoFiltered": "(筛选自 _MAX_ 项)",
-            "sSearch":       "<i class='bi bi-search'></i>",
-            "sEmptyTable":     "暂无数据",
-            "sLoadingRecords": "载入中...",
-            "oPaginate": {
-                "sFirst":    "首页",
-                "sPrevious": "‹",
-                "sNext":     "›",
-                "sLast":     "末页"
-            }
-        },
-        orderCellsTop: true,
-        fixedHeader: true,
-        initComplete: function () {
-            var api = this.api();
-
-            api.columns().eq(0).each(function (colIdx) {
-                var cell = $('.filters th').eq($(api.column(colIdx).header()).index());
-                var title = $(cell).text().trim();
-
-                if(title === "") { return; }
-
-                var select = $('<select class="col-search-input"><option value="">全部</option></select>')
-                    .appendTo($(cell).empty())
-                    .on('change', function () {
-                        var val = $.fn.dataTable.util.escapeRegex($(this).val());
-                        api.column(colIdx)
-                            .search(val ? '^' + val + '$' : '', true, false)
-                            .draw();
-                    });
-
-                api.column(colIdx).data().unique().sort().each(function (d) {
-                    var textData = $('<div>').html(d).text().trim();
-                    if(textData) {
-                        select.append('<option value="' + textData + '">' + textData + '</option>');
-                    }
-                });
-            });
-        }
-    });
-});
-</script>
 
 {{template "footer.tmpl" .}}
 {{end}}
