@@ -1,26 +1,46 @@
 {{define "admin/login.tmpl"}}
 {{template "header.tmpl" .}}
 
+<style>
+    .admin-login-card {
+        border: none; border-radius: 14px; overflow: hidden;
+        box-shadow: 0 8px 30px rgba(0,51,160,0.1);
+    }
+    .admin-login-header {
+        background: linear-gradient(135deg, var(--hit-blue) 0%, #1a5cff 100%);
+        color: white; padding: 2rem; text-align: center;
+    }
+    .admin-login-header h4 { font-weight: 700; margin: 0; }
+    .admin-login-header p { opacity: 0.8; font-size: 0.85rem; margin: 6px 0 0; }
+</style>
+
 <div class="row justify-content-center mt-5">
-    <div class="col-md-4 col-sm-8">
-        <div class="card shadow-sm border-0">
+    <div class="col-md-5 col-lg-4">
+        <div class="admin-login-card card">
+            <div class="admin-login-header">
+                <i class="bi bi-shield-lock-fill" style="font-size:2.5rem;opacity:0.9"></i>
+                <h4 class="mt-2">管理员控制台</h4>
+                <p>请使用管理员账号登录</p>
+            </div>
             <div class="card-body p-4">
-                <div class="text-center mb-4">
-                    <h4 class="text-purple fw-bold">核验管理控制台</h4>
-                    <p class="text-muted">请使用管理员账号登录</p>
+                {{if .Error}}
+                <div class="alert alert-danger d-flex align-items-center py-2 px-3" style="font-size:0.85rem;">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>{{.Error}}
                 </div>
-                
+                {{end}}
                 <form action="/ky/admin/login" method="POST">
                     <div class="mb-3">
-                        <label class="form-label">账号</label>
-                        <input type="text" name="username" class="form-control" placeholder="admin" required>
+                        <label class="form-label fw-semibold text-secondary">账号</label>
+                        <input type="text" name="username" class="form-control" placeholder="输入管理员账号" required style="border-radius:8px;padding:10px 14px;">
                     </div>
                     <div class="mb-4">
-                        <label class="form-label">密码</label>
-                        <input type="password" name="password" class="form-control" placeholder="admin123" required>
+                        <label class="form-label fw-semibold text-secondary">密码</label>
+                        <input type="password" name="password" class="form-control" placeholder="输入管理员密码" required style="border-radius:8px;padding:10px 14px;">
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn bg-purple text-white">登 录</button>
+                        <button type="submit" class="btn btn-lg text-white fw-bold" style="background:linear-gradient(135deg,var(--hit-blue),#1a5cff);border:none;border-radius:8px;">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>登 录
+                        </button>
                     </div>
                 </form>
             </div>

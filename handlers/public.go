@@ -54,6 +54,15 @@ func IndexPage(c *gin.Context) {
 		}
 	}
 
+	// 总分筛选参数
+	minScoreStr := c.Query("min_score")
+	minScore := 0
+	if minScoreStr != "" {
+		if v, err := strconv.Atoi(minScoreStr); err == nil {
+			minScore = v
+		}
+	}
+
 	// 在内存中对已排序记录进行筛选
 	type RenderRecord struct {
 		Rank        int
@@ -68,6 +77,11 @@ func IndexPage(c *gin.Context) {
 	totalApproved := len(allRecords)
 
 	for _, r := range allRecords {
+		// 总分筛选
+		if minScore > 0 && r.TotalScore < minScore {
+			continue
+		}
+
 		var dynData map[string]interface{}
 		if len(r.DynamicData) > 0 {
 			json.Unmarshal(r.DynamicData, &dynData)
@@ -124,6 +138,7 @@ func IndexPage(c *gin.Context) {
 		"CurrentUser":   userRecord,
 		"DirAlias":      dirAlias,
 		"ActiveFilters": activeFilters,
+		"MinScore":      minScoreStr,
 	})
 }
 
@@ -189,6 +204,7 @@ func SubmitPage(c *gin.Context) {
 		"DynamicFields":      dynamicFields,
 		"CurrentUser":        userRecord,
 		"CurrentDynamicData": currentDynamicData,
+		"DirAlias":           config.GetDirAlias(),
 	})
 }
 

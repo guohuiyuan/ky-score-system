@@ -128,6 +128,9 @@
             </select>
             {{end}}
         {{end}}
+        <input type="number" name="min_score" placeholder="总分≥" value="{{.MinScore}}" min="0" max="500"
+            style="width:80px;border:1px solid #d2e3fc;border-radius:6px;padding:5px 8px;font-size:0.82rem;text-align:center;"
+            onchange="document.getElementById('filterForm').submit()">
         <a href="/ky/" class="btn btn-sm btn-outline-secondary" style="font-size:0.78rem;border-radius:6px;"><i class="bi bi-x-lg"></i> 重置</a>
     </form>
 

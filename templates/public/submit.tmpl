@@ -124,7 +124,10 @@
                                 <select class="form-select" name="{{.Key}}" required>
                                     <option value="">请选择{{.Label}}</option>
                                     {{range .Options}}
-                                    <option value="{{.}}" {{if $.CurrentDynamicData}}{{if eq (index $.CurrentDynamicData $fieldKey) .}}selected{{end}}{{end}}>{{.}}</option>
+                                    {{$optStr := .}}
+                                    <option value="{{$optStr}}" {{if $.CurrentDynamicData}}{{if eq (index $.CurrentDynamicData $fieldKey) $optStr}}selected{{end}}{{end}}>
+                                        {{if and (eq $fieldKey "direction") (index $.DirAlias $optStr)}}{{index $.DirAlias $optStr}}{{else}}{{$optStr}}{{end}}
+                                    </option>
                                     {{end}}
                                 </select>
                             {{else}}
