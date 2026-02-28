@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/guohuiyuan/ky-score-system/handlers"
 	"github.com/guohuiyuan/ky-score-system/middlewares"
@@ -12,6 +14,11 @@ func SetupRouter() *gin.Engine {
 	// 1. 加载所有模板文件
 	// 注意路径匹配：需要解析 templates 及其所有子目录下的 .tmpl 文件
 	r.LoadHTMLGlob("templates/**/*.tmpl")
+
+	// 根路径重定向到 /ky/
+	r.GET("/", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/ky/")
+	})
 
 	// 统一路由前缀
 	app := r.Group("/ky")
