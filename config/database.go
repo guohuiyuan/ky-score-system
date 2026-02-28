@@ -21,19 +21,14 @@ type AppConfigJSON struct {
 var DB *gorm.DB
 var AppConfig AppConfigJSON
 
-// LoadConfig 从 data/config.json 读取全局配置（若不存在则从 config.example.json 复制）
-func LoadConfig() {
+// LoadConfig 从 data/config.json 读取全局配置（若不存在则从嵌入的 config.example.json 创建）
+func LoadConfig(configExampleData []byte) {
 	configPath := "data/config.json"
-	examplePath := "config.example.json"
 
-	// 如果 config.json 不存在，从 example 复制一份
+	// 如果 config.json 不存在，从嵌入的示例配置创建
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		log.Println("⚠️  data/config.json 不存在，正在从 config.example.json 创建...")
-		src, err := os.ReadFile(examplePath)
-		if err != nil {
-			log.Fatalf("❌ 也找不到 data/config.example.json: %v", err)
-		}
-		if err := os.WriteFile(configPath, src, 0644); err != nil {
+		log.Println("⚠️  data/config.json 不存在，正在从嵌入的 config.example.json 创建...")
+		if err := os.WriteFile(configPath, configExampleData, 0644); err != nil {
 			log.Fatalf("❌ 写入 data/config.json 失败: %v", err)
 		}
 		log.Println("✅ 已从示例配置创建 data/config.json")

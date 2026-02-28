@@ -34,11 +34,6 @@ WORKDIR /home/appuser/
 # Copy the binary from builder stage
 COPY --from=builder /app/ky-score-system .
 
-# Copy runtime assets (templates, static files, config example)
-COPY --from=builder /app/templates ./templates
-COPY --from=builder /app/static ./static
-COPY --from=builder /app/config.example.json ./config.example.json
-
 # Change ownership to non-root user
 RUN chown -R appuser:appuser /home/appuser/
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"fmt"
 	"log"
 	"os"
@@ -9,6 +10,15 @@ import (
 	"github.com/guohuiyuan/ky-score-system/routes"
 	"github.com/spf13/cobra"
 )
+
+//go:embed templates/**/*.tmpl
+var templatesFS embed.FS
+
+//go:embed static
+var staticFS embed.FS
+
+//go:embed config.example.json
+var configExampleJSON []byte
 
 var port string
 
@@ -22,14 +32,14 @@ var rootCmd = &cobra.Command{
 			log.Fatalf("无法创建数据目录: %v", err)
 		}
 
-		// 2. 加载 JSON 配置
-		config.LoadConfig()
+		// 2. 加载 JSON 配置（从嵌入的 config.example.json 自动创建）
+		config.LoadConfig(configExampleJSON)
 
 		// 3. 初始化数据库
 		config.InitDB()
 
-		// 4. 初始化路由
-		r := routes.SetupRouter()
+		// 4. 初始化路由（传入嵌入的模板和静态文件）
+		r := routes.SetupRouter(templatesFS, staticFS)
 
 		// 5. 启动 HTTP 服务
 		log.Printf("服务启动成功，访问地址: http://localhost:%s/ky", port)

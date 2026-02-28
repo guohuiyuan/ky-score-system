@@ -1,6 +1,9 @@
 package routes
 
 import (
+	"embed"
+	"html/template"
+	"io/fs"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -8,12 +11,17 @@ import (
 	"github.com/guohuiyuan/ky-score-system/middlewares"
 )
 
-func SetupRouter() *gin.Engine {
+func SetupRouter(templatesFS embed.FS, staticFS embed.FS) *gin.Engine {
 	r := gin.Default()
 
-	// 1. 加载所有模板文件
-	// 注意路径匹配：需要解析 templates 及其所有子目录下的 .tmpl 文件
-	r.LoadHTMLGlob("templates/**/*.tmpl")
+	// 1. 从嵌入的文件系统加载模板
+	subTemplatesFS, _ := fs.Sub(templatesFS, "templates")
+	tmpl := template.Must(template.New("").ParseFS(subTemplatesFS,
+		"public/*.tmpl",
+		"admin/*.tmpl",
+		"layout/*.tmpl",
+	))
+	r.SetHTMLTemplate(tmpl)
 
 	// 根路径重定向到 /ky/
 	r.GET("/", func(c *gin.Context) {
@@ -23,10 +31,10 @@ func SetupRouter() *gin.Engine {
 	// 统一路由前缀
 	app := r.Group("/ky")
 	{
-		// 2. 静态文件与上传目录
-		// 确保根目录存在 uploads 文件夹，否则启动或上传时会报错
-		app.Static("/uploads", "./data/uploads")
-		app.Static("/static", "./static")
+		// 2. 静态文件：嵌入的静态资源 + 磁盘上的用户上传目录
+		subStaticFS, _ := fs.Sub(staticFS, "static")
+		app.StaticFS("/static", http.FS(subStaticFS))
+		app.Static("/uploads", "./data/uploads") // 用户上传的截图仍从磁盘读取
 
 		// 3. 前台公开路由
 		app.GET("/login", handlers.LoginPage)
