@@ -14,7 +14,10 @@ func main() {
 		log.Fatalf("无法创建数据目录: %v", err)
 	}
 
-	// 2. 初始化数据库 (内部会自动检查并初始化 YAML 数据)
+	// 2. 加载 JSON 配置
+	config.LoadConfig()
+
+	// 3. 初始化数据库
 	config.InitDB()
 
 	// 3. 初始化路由

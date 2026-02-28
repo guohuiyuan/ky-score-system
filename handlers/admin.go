@@ -21,8 +21,8 @@ func AdminLoginAction(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 
-	// 硬编码简单校验（生产环境请查库或使用哈希密码）
-	if username == "admin" && password == "admin123" {
+	// 从 JSON 配置文件读取管理员凭证
+	if username == config.AppConfig.Admin.Username && password == config.AppConfig.Admin.Password {
 		// 登录成功，设置 Cookie (有效期24小时)
 		c.SetCookie("admin_token", "super_secret_token", 86400, "/", "", false, true)
 		c.Redirect(http.StatusFound, "/ky/admin/dashboard")

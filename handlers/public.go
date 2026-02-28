@@ -72,29 +72,8 @@ func IndexPage(c *gin.Context) {
 		})
 	}
 
-	// The original examName logic is replaced by using examConfig.MajorName directly in the title.
-	// The instruction implies `currentRecord` should be used, which maps to `userRecord` in the existing code.
-	// The instruction also implies `rankedRecords` and `dynamicFields` which map to `renderRecords` and `dynamicHeaders` respectively.
-
-	dirAlias := map[string]string{
-		"【本部】计算学部/未来技术学院-计算机科学与技术(学硕)": "本部·计科学硕",
-		"【本部】计算学部-软件工程(学硕)":            "本部·软工学硕",
-		"【本部】计算学部-智能科学与技术(087600)":     "本部·智科学硕",
-		"【本部】计算学部-计算机方向(专硕)":           "本部·计科专硕",
-		"【本部】计算学部-软件方向(专硕)":            "本部·软工专硕",
-		"【本部】计算学部-计算机方向(威海专硕)":         "威海·计科专",
-		"【深圳】计算机方向":                    "深圳·计科",
-		"【深圳】人工智能方向":                   "深圳·AI",
-		"【深圳】计算机方向(校企联培)":              "深圳·计科(联)",
-		"【深圳】AI智能(校企联培)":               "深圳·AI(联)",
-		"【威海】计算机方向":                    "威海·计科",
-		"【郑州】计算机方向":                    "郑州·计科",
-		"【郑州】软件方向":                     "郑州·软工",
-		"【重庆】计算机方向":                    "重庆·计科",
-		"【重庆】软件方向":                     "重庆·软工",
-		"【苏州】计算机方向":                    "苏州·计科",
-		"【苏州】软件方向":                     "苏州·软工",
-	}
+	// 从 JSON 配置文件加载方向别名映射
+	dirAlias := config.GetDirAlias()
 
 	// 渲染 HTML 模板
 	c.HTML(http.StatusOK, "public/index.tmpl", gin.H{

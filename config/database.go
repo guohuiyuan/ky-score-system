@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"log"
+	"os"
 
 	"github.com/glebarez/sqlite"
 	"github.com/guohuiyuan/ky-score-system/models"
@@ -10,7 +11,50 @@ import (
 	"gorm.io/gorm"
 )
 
+// AppConfigJSON 应用级 JSON 配置结构
+type AppConfigJSON struct {
+	ExamName string `json:"exam_name"`
+	Admin    struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	} `json:"admin"`
+	Fields            []map[string]interface{} `json:"fields"`
+	KeyRecoveryFields []string                 `json:"key_recovery_fields"`
+}
+
 var DB *gorm.DB
+var AppConfig AppConfigJSON
+
+// LoadConfig 从 data/config.json 读取全局配置
+func LoadConfig() {
+	data, err := os.ReadFile("data/config.json")
+	if err != nil {
+		log.Fatalf("❌ 无法读取 data/config.json: %v", err)
+	}
+	if err := json.Unmarshal(data, &AppConfig); err != nil {
+		log.Fatalf("❌ 解析 data/config.json 出错: %v", err)
+	}
+	log.Printf("✅ 配置文件加载成功: 考试名称=%s, 字段数=%d", AppConfig.ExamName, len(AppConfig.Fields))
+}
+
+// GetDirAlias 从已加载的配置中提取方向别名映射表
+func GetDirAlias() map[string]string {
+	dirAlias := make(map[string]string)
+	for _, field := range AppConfig.Fields {
+		if field["Key"] == "direction" {
+			if aliasRaw, ok := field["Alias"]; ok {
+				if aliasMap, ok := aliasRaw.(map[string]interface{}); ok {
+					for k, v := range aliasMap {
+						if vs, ok := v.(string); ok {
+							dirAlias[k] = vs
+						}
+					}
+				}
+			}
+		}
+	}
+	return dirAlias
+}
 
 func InitDB() {
 	var err error
@@ -30,50 +74,19 @@ func initDataIfEmpty() {
 		return // 数据库已有数据，跳过
 	}
 
-	log.Println("检测到初次运行，正在注入哈工大计算机考研专属配置...")
+	log.Println("检测到初次运行，正在从 config.json 注入配置...")
 
-	// 100% 安全的强类型初始化，告别 YAML 解析坑
-	fields := []map[string]interface{}{
-		{"Key": "politics", "Label": "政治", "Type": "number"},
-		{"Key": "english", "Label": "英语一", "Type": "number"},
-		{"Key": "math", "Label": "数学一", "Type": "number"},
-		{"Key": "subject_408", "Label": "408/854", "Type": "number"},
-		{"Key": "undergrad", "Label": "本科层次", "Type": "select", "Options": []string{"985", "211", "双非(含双一流)"}},
-		{"Key": "attempt", "Label": "几战", "Type": "select", "Options": []string{"一战", "二战", "多战"}},
-		{"Key": "direction", "Label": "方向", "Type": "select", "Options": []string{
-			"【本部】计算学部/未来技术学院-计算机科学与技术(学硕)",
-			"【本部】计算学部-软件工程(学硕)",
-			"【本部】计算学部-智能科学与技术(087600)",
-			"【本部】计算学部-计算机方向(专硕)",
-			"【本部】计算学部-软件方向(专硕)",
-			"【本部】计算学部-计算机方向(威海专硕)",
-			"【深圳】计算机方向",
-			"【深圳】人工智能方向",
-			"【深圳】计算机方向(校企联培)",
-			"【深圳】AI智能(校企联培)",
-			"【威海】计算机方向",
-			"【郑州】计算机方向",
-			"【郑州】软件方向",
-			"【重庆】计算机方向",
-			"【重庆】软件方向",
-			"【苏州】计算机方向",
-			"【苏州】软件方向",
-		}},
-	}
-	fieldsJSON, _ := json.Marshal(fields)
-
-	// 配置找回密钥需要的字段
-	recoveryFields := []string{"politics", "english", "math", "subject_408"}
-	recoveryJSON, _ := json.Marshal(recoveryFields)
+	fieldsJSON, _ := json.Marshal(AppConfig.Fields)
+	recoveryJSON, _ := json.Marshal(AppConfig.KeyRecoveryFields)
 
 	exam := models.ExamConfig{
-		MajorName:         "哈工大计算机考研 (HIT CS)",
+		MajorName:         AppConfig.ExamName,
 		Fields:            datatypes.JSON(fieldsJSON),
 		KeyRecoveryFields: datatypes.JSON(recoveryJSON),
 	}
 	DB.Create(&exam)
 
-	// 注入一条完美的初始测试数据
+	// 注入一条测试数据
 	testDynamicData, _ := json.Marshal(map[string]interface{}{
 		"politics":    68,
 		"english":     81,
