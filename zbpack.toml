@@ -1,0 +1,12 @@
+[[ports]]
+id = "web"
+port = 8080
+type = "HTTP"
+
+[[volumes]]
+id = "data"
+dir = "/home/appuser/data"
+
+[env]
+TZ = { default = "Asia/Shanghai" }
+PORT = { default = "8080" }

@@ -55,11 +55,12 @@ services:
     container_name: ky-score-system
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8080:8080"  # 宿主机端口:容器端口，可按需修改左侧
     volumes:
       - ./data:/home/appuser/data
     environment:
       - TZ=Asia/Shanghai
+      - PORT=8080  # 可选，自定义容器内监听端口
 ```
 
 然后执行启动命令：
@@ -76,11 +77,17 @@ docker-compose up -d
    git clone https://github.com/guohuiyuan/ky-score-system.git
    cd ky-score-system
    ```
-2. 启动服务（会自动下载依赖包并执行）：
+2. 启动服务（默认监听 `8080` 端口）：
    ```bash
    go run .
    ```
-3. 在浏览器访问：[http://127.0.0.1:8080/ky/](http://127.0.0.1:8080/ky/)
+   使用 `--port` 或 `-p` 自定义端口：
+   ```bash
+   go run . --port 3000
+   # 或简写
+   go run . -p 3000
+   ```
+3. 在浏览器访问：[http://127.0.0.1:8080/ky/](http://127.0.0.1:8080/ky/)（如果自定义了端口，请替换为对应端口）
 
 ---
 
