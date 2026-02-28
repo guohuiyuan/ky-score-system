@@ -36,3 +36,11 @@ type ScoreRecord struct {
 	// {"math": 135, "politics": 68, "attempt": "二战"}
 	DynamicData datatypes.JSON `gorm:"comment:动态字段数据(JSON格式)"`
 }
+
+// AdminUser 管理员用户表
+type AdminUser struct {
+	gorm.Model
+	Username           string `gorm:"size:50;uniqueIndex;comment:管理员账号"`
+	Password           string `gorm:"size:255;comment:管理员密码"`
+	MustChangePassword bool   `gorm:"default:true;comment:是否必须修改密码"`
+}

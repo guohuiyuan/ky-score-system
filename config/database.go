@@ -11,13 +11,9 @@ import (
 	"gorm.io/gorm"
 )
 
-// AppConfigJSON 应用级 JSON 配置结构
+// AppConfigJSON 应用级 JSON 配置结构（不含管理员密码，密码在数据库中管理）
 type AppConfigJSON struct {
-	ExamName string `json:"exam_name"`
-	Admin    struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	} `json:"admin"`
+	ExamName          string                   `json:"exam_name"`
 	Fields            []map[string]interface{} `json:"fields"`
 	KeyRecoveryFields []string                 `json:"key_recovery_fields"`
 }
@@ -25,9 +21,25 @@ type AppConfigJSON struct {
 var DB *gorm.DB
 var AppConfig AppConfigJSON
 
-// LoadConfig 从 data/config.json 读取全局配置
+// LoadConfig 从 data/config.json 读取全局配置（若不存在则从 config.example.json 复制）
 func LoadConfig() {
-	data, err := os.ReadFile("data/config.json")
+	configPath := "data/config.json"
+	examplePath := "data/config.example.json"
+
+	// 如果 config.json 不存在，从 example 复制一份
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		log.Println("⚠️  data/config.json 不存在，正在从 config.example.json 创建...")
+		src, err := os.ReadFile(examplePath)
+		if err != nil {
+			log.Fatalf("❌ 也找不到 data/config.example.json: %v", err)
+		}
+		if err := os.WriteFile(configPath, src, 0644); err != nil {
+			log.Fatalf("❌ 写入 data/config.json 失败: %v", err)
+		}
+		log.Println("✅ 已从示例配置创建 data/config.json")
+	}
+
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		log.Fatalf("❌ 无法读取 data/config.json: %v", err)
 	}
@@ -63,15 +75,16 @@ func InitDB() {
 		log.Fatalf("无法连接到 SQLite: %v", err)
 	}
 
-	DB.AutoMigrate(&models.ExamConfig{}, &models.ScoreRecord{})
+	DB.AutoMigrate(&models.ExamConfig{}, &models.ScoreRecord{}, &models.AdminUser{})
 	initDataIfEmpty()
+	initAdminIfEmpty()
 }
 
 func initDataIfEmpty() {
 	var count int64
 	DB.Model(&models.ExamConfig{}).Count(&count)
 	if count > 0 {
-		return // 数据库已有数据，跳过
+		return
 	}
 
 	log.Println("检测到初次运行，正在从 config.json 注入配置...")
@@ -86,7 +99,6 @@ func initDataIfEmpty() {
 	}
 	DB.Create(&exam)
 
-	// 注入一条测试数据
 	testDynamicData, _ := json.Marshal(map[string]interface{}{
 		"politics":    68,
 		"english":     81,
@@ -110,4 +122,20 @@ func initDataIfEmpty() {
 	})
 
 	log.Println("✅ 动态配置与测试数据注入成功！")
+}
+
+// initAdminIfEmpty 如果数据库中没有管理员账号，则创建默认账号 admin/admin123（首次登录需修改密码）
+func initAdminIfEmpty() {
+	var count int64
+	DB.Model(&models.AdminUser{}).Count(&count)
+	if count > 0 {
+		return
+	}
+
+	log.Println("创建默认管理员账号 admin / admin123（首次登录需修改密码）")
+	DB.Create(&models.AdminUser{
+		Username:           "admin",
+		Password:           "admin123",
+		MustChangePassword: true,
+	})
 }

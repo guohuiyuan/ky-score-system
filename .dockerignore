@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Build artifacts
+ky-score-system
+ky-score-system.exe
+
+# Data (runtime generated)
+data/score.db
+data/config.json
+data/uploads/
+
+# Documentation
+README.md
+LICENSE
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# GoReleaser
+dist/
+.goreleaser.yml
+
+# GitHub
+.github/
+
+# Logs & temp
+*.log
+*.tmp
+*.swp

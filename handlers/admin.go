@@ -16,28 +16,90 @@ func AdminLoginPage(c *gin.Context) {
 	})
 }
 
-// AdminLoginAction 管理员登录逻辑
+// AdminLoginAction 管理员登录逻辑（从数据库查询）
 func AdminLoginAction(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 
-	// 从 JSON 配置文件读取管理员凭证
-	if username == config.AppConfig.Admin.Username && password == config.AppConfig.Admin.Password {
-		// 登录成功，设置 Cookie (有效期24小时)
-		c.SetCookie("admin_token", "super_secret_token", 86400, "/", "", false, true)
-		c.Redirect(http.StatusFound, "/ky/admin/dashboard")
+	var admin models.AdminUser
+	if err := config.DB.Where("username = ? AND password = ?", username, password).First(&admin).Error; err != nil {
+		c.HTML(http.StatusUnauthorized, "admin/login.tmpl", gin.H{
+			"Title": "管理员登录 - 考研分数统计",
+			"Error": "账号或密码错误，请重试",
+		})
 		return
 	}
 
-	// 登录失败，重新渲染页面并传入错误信息 (前端模板可以加个 {{.Error}} 提示)
-	c.HTML(http.StatusUnauthorized, "admin/login.tmpl", gin.H{
-		"Title": "管理员登录 - 考研分数统计",
-		"Error": "账号或密码错误，请重试",
+	// 登录成功，设置 Cookie
+	c.SetCookie("admin_token", "super_secret_token", 86400, "/", "", false, true)
+
+	// 如果需要修改密码，跳转到修改密码页
+	if admin.MustChangePassword {
+		c.Redirect(http.StatusFound, "/ky/admin/change-password")
+		return
+	}
+
+	c.Redirect(http.StatusFound, "/ky/admin/dashboard")
+}
+
+// AdminChangePasswordPage 修改密码页面
+func AdminChangePasswordPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "admin/change_password.tmpl", gin.H{
+		"Title": "修改管理员密码",
 	})
+}
+
+// AdminChangePasswordAction 修改密码处理
+func AdminChangePasswordAction(c *gin.Context) {
+	oldPass := c.PostForm("old_password")
+	newPass := c.PostForm("new_password")
+	confirmPass := c.PostForm("confirm_password")
+
+	if newPass != confirmPass {
+		c.HTML(http.StatusOK, "admin/change_password.tmpl", gin.H{
+			"Title": "修改管理员密码",
+			"Error": "两次输入的新密码不一致",
+		})
+		return
+	}
+
+	if len(newPass) < 6 {
+		c.HTML(http.StatusOK, "admin/change_password.tmpl", gin.H{
+			"Title": "修改管理员密码",
+			"Error": "新密码长度不能少于6位",
+		})
+		return
+	}
+
+	// 验证旧密码
+	var admin models.AdminUser
+	if err := config.DB.Where("password = ?", oldPass).First(&admin).Error; err != nil {
+		c.HTML(http.StatusOK, "admin/change_password.tmpl", gin.H{
+			"Title": "修改管理员密码",
+			"Error": "旧密码错误",
+		})
+		return
+	}
+
+	// 更新密码
+	config.DB.Model(&admin).Updates(map[string]interface{}{
+		"password":             newPass,
+		"must_change_password": false,
+	})
+
+	c.Redirect(http.StatusFound, "/ky/admin/dashboard")
 }
 
 // AdminDashboard 后台核验控制台
 func AdminDashboard(c *gin.Context) {
+	// 检查是否需要先改密码
+	var admin models.AdminUser
+	config.DB.First(&admin)
+	if admin.MustChangePassword {
+		c.Redirect(http.StatusFound, "/ky/admin/change-password")
+		return
+	}
+
 	var records []models.ScoreRecord
 
 	query := config.DB.Model(&models.ScoreRecord{})
@@ -91,7 +153,7 @@ func AdminDashboard(c *gin.Context) {
 	})
 }
 
-// AdminVerifyRecord 审核记录 (通过/驳回) - 这个是供 AJAX 调用的 API，保留 JSON 返回
+// AdminVerifyRecord 审核记录 (通过/驳回)
 func AdminVerifyRecord(c *gin.Context) {
 	id := c.Param("id")
 
@@ -113,7 +175,7 @@ func AdminVerifyRecord(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "状态更新成功"})
 }
 
-// AdminDeleteRecord 删除记录 - 供 AJAX 调用
+// AdminDeleteRecord 删除记录
 func AdminDeleteRecord(c *gin.Context) {
 	id := c.Param("id")
 

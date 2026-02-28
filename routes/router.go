@@ -51,6 +51,8 @@ func SetupRouter() *gin.Engine {
 		{
 			admin.GET("/dashboard", handlers.AdminDashboard)          // 核验控制台
 			admin.POST("/api/verify/:id", handlers.AdminVerifyRecord) // 审核(通过/驳回)
+			admin.GET("/change-password", handlers.AdminChangePasswordPage)
+			admin.POST("/change-password", handlers.AdminChangePasswordAction)
 		}
 
 		// 6. 后台管理接口路由 (带鉴权中间件)

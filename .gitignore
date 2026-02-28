@@ -1,2 +1,22 @@
-data/
-*.exe
+# Binary
+ky-score-system
+ky-score-system.exe
+
+# Runtime data
+data/score.db
+data/config.json
+data/uploads/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+dist/
+
+# Logs
+*.log
