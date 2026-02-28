@@ -49,25 +49,6 @@ func LoadConfig() {
 	log.Printf("✅ 配置文件加载成功: 考试名称=%s, 字段数=%d", AppConfig.ExamName, len(AppConfig.Fields))
 }
 
-// GetDirAlias 从已加载的配置中提取方向别名映射表
-func GetDirAlias() map[string]string {
-	dirAlias := make(map[string]string)
-	for _, field := range AppConfig.Fields {
-		if field["Key"] == "direction" {
-			if aliasRaw, ok := field["Alias"]; ok {
-				if aliasMap, ok := aliasRaw.(map[string]interface{}); ok {
-					for k, v := range aliasMap {
-						if vs, ok := v.(string); ok {
-							dirAlias[k] = vs
-						}
-					}
-				}
-			}
-		}
-	}
-	return dirAlias
-}
-
 func InitDB() {
 	var err error
 	DB, err = gorm.Open(sqlite.Open("data/score.db"), &gorm.Config{})
@@ -106,7 +87,7 @@ func initDataIfEmpty() {
 		"subject_408": 115,
 		"undergrad":   "985",
 		"attempt":     "二战",
-		"direction":   "【本部】计算学部/未来技术学院-计算机科学与技术(学硕)",
+		"direction":   "本部·计科学硕",
 	})
 
 	DB.Create(&models.ScoreRecord{

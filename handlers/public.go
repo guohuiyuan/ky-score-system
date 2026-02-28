@@ -125,9 +125,6 @@ func IndexPage(c *gin.Context) {
 		filteredRecords[i].Rank = i + 1
 	}
 
-	// 从 JSON 配置文件加载方向别名映射
-	dirAlias := config.GetDirAlias()
-
 	c.HTML(http.StatusOK, "public/index.tmpl", gin.H{
 		"Title":         examConfig.MajorName + " 实时成绩排名榜",
 		"ExamName":      examConfig.MajorName,
@@ -136,7 +133,7 @@ func IndexPage(c *gin.Context) {
 		"TotalCount":    totalApproved,
 		"FilteredCount": len(filteredRecords),
 		"CurrentUser":   userRecord,
-		"DirAlias":      dirAlias,
+
 		"ActiveFilters": activeFilters,
 		"MinScore":      minScoreStr,
 	})
@@ -145,7 +142,7 @@ func IndexPage(c *gin.Context) {
 // LoginPage 密钥输入页面
 func LoginPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "public/login.tmpl", gin.H{
-		"Title": "验证身份 - 哈工大计算机考研",
+		"Title": "验证身份 - " + config.AppConfig.ExamName,
 	})
 }
 
@@ -155,7 +152,7 @@ func LoginAction(c *gin.Context) {
 	var record models.ScoreRecord
 	if err := config.DB.Where("secret_key = ?", secretKey).First(&record).Error; err != nil {
 		c.HTML(http.StatusOK, "public/login.tmpl", gin.H{
-			"Title": "验证身份 - 哈工大计算机考研",
+			"Title": "验证身份 - " + config.AppConfig.ExamName,
 			"Error": "未找到匹配的密钥，请查证后重试或尝试找回密钥。",
 		})
 		return
@@ -199,12 +196,11 @@ func SubmitPage(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "public/submit.tmpl", gin.H{
-		"Title":              "填写/更新分数 - 哈工大计算机考研",
+		"Title":              "填写/更新分数 - " + config.AppConfig.ExamName,
 		"ExamConfig":         examConfig,
 		"DynamicFields":      dynamicFields,
 		"CurrentUser":        userRecord,
 		"CurrentDynamicData": currentDynamicData,
-		"DirAlias":           config.GetDirAlias(),
 	})
 }
 

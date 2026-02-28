@@ -121,9 +121,7 @@
                 <option value="">全部{{.Label}}</option>
                 {{range .Options}}
                     {{$optStr := .}}
-                    <option value="{{$optStr}}" {{if eq (index $.ActiveFilters $key) $optStr}}selected{{end}}>
-                        {{if and (eq $key "direction") (index $.DirAlias $optStr)}}{{index $.DirAlias $optStr}}{{else}}{{$optStr}}{{end}}
-                    </option>
+                    <option value="{{$optStr}}" {{if eq (index $.ActiveFilters $key) $optStr}}selected{{end}}>{{$optStr}}</option>
                 {{end}}
             </select>
             {{end}}
@@ -174,9 +172,7 @@
                         <td>
                             {{$val := index $row.DynamicData .Key}}
                             {{if and $val (eq .Key "direction")}}
-                                <span class="dir-badge" title="{{$val}}">
-                                    {{if index $.DirAlias $val}}{{index $.DirAlias $val}}{{else}}{{$val}}{{end}}
-                                </span>
+                                <span class="dir-badge" title="{{$val}}">{{$val}}</span>
                             {{else if $val}}{{$val}}
                             {{else}}<span class="text-muted">-</span>{{end}}
                         </td>

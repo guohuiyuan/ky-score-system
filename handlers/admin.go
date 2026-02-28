@@ -149,7 +149,6 @@ func AdminDashboard(c *gin.Context) {
 		"DynamicHeaders": dynamicHeaders,
 		"SearchKw":       searchKw,
 		"StatusFilter":   statusFilter,
-		"DirAlias":       config.GetDirAlias(),
 	})
 }
 

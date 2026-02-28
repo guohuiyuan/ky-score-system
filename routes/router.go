@@ -53,17 +53,17 @@ func SetupRouter() *gin.Engine {
 			admin.POST("/api/verify/:id", handlers.AdminVerifyRecord) // 审核(通过/驳回)
 			admin.GET("/change-password", handlers.AdminChangePasswordPage)
 			admin.POST("/change-password", handlers.AdminChangePasswordAction)
+
+			// 管理接口 (路径 /ky/admin/api/...)
+			admin.DELETE("/api/record/:id", handlers.AdminDeleteRecord) // 删除记录
+			admin.POST("/api/batch-verify", handlers.AdminBatchVerify)  // 批量审核
+			admin.POST("/api/batch-delete", handlers.AdminBatchDelete)  // 批量删除
 		}
 
-		// 6. 后台管理接口路由 (带鉴权中间件)
+		// 6. Excel 导入导出接口 (带鉴权)
 		adminAPI := app.Group("/api/admin")
 		adminAPI.Use(middlewares.AdminAuth())
 		{
-			adminAPI.DELETE("/record/:id", handlers.AdminDeleteRecord) // 删除记录
-			adminAPI.POST("/batch-verify", handlers.AdminBatchVerify)  // 批量审核
-			adminAPI.POST("/batch-delete", handlers.AdminBatchDelete)  // 批量删除
-
-			// 新增 Excel 导入导出
 			adminAPI.GET("/excel-template", handlers.AdminDownloadExcelTemplate)
 			adminAPI.POST("/import-excel", handlers.AdminImportExcel)
 			adminAPI.GET("/export-excel", handlers.AdminExportExcel)

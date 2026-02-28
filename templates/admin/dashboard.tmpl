@@ -121,7 +121,7 @@
                         <td style="font-size:0.8rem">
                             {{$val := index $row.DynamicData .Key}}
                             {{if and $val (eq .Key "direction")}}
-                                {{if index $.DirAlias $val}}{{index $.DirAlias $val}}{{else}}{{$val}}{{end}}
+                                {{$val}}
                             {{else if $val}}{{$val}}
                             {{else}}-{{end}}
                         </td>
