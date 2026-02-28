@@ -369,8 +369,36 @@ func SubmitScore(c *gin.Context) {
 			<div style="text-align:center; margin-top:50px; font-family:sans-serif;">
 				<h2 style="color:#28a745;">更新成功！</h2>
 				<p>您的成绩已更新，正在重新等待管理员核验。</p>
-				<a href="/ky/" style="padding:10px 20px; background:#0033a0; color:white; text-decoration:none; border-radius:5px; display:inline-block; margin-top:20px;">返回排行榜</a>
+				<div style="background:#fff3cd; border:1px solid #ffe69c; padding:20px; border-radius:8px; margin: 25px auto; max-width:400px; color:#664d03; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+					<p style="margin:0 0 15px 0; font-weight:bold; font-size:1.1rem;">🔑 您的专属密钥</p>
+					<h3 style="margin:0; font-family:monospace; font-size: 1.5rem; letter-spacing: 2px; user-select:all;">`+secretKey+`</h3>
+					<p style="margin:15px 0 0 0; font-size:0.85rem; opacity:0.8;">请妥善保存此密钥，用于在其他设备上修改成绩。</p>
+				</div>
+				<a href="javascript:void(0);" onclick="copyAndRedirect('`+secretKey+`')" style="padding:10px 20px; background:#0033a0; color:white; text-decoration:none; border-radius:5px; display:inline-block; margin-top:10px;">复制密钥并返回排名</a>
 			</div>
+			<script>
+			function copyAndRedirect(key) {
+				var btn = document.querySelector('a[onclick]');
+				btn.innerText = '复制中...';
+				btn.style.pointerEvents = 'none';
+				var fallback = function() {
+					var el = document.createElement('textarea');
+					el.value = key;
+					document.body.appendChild(el);
+					el.select();
+					try { document.execCommand('copy'); } catch(e) {}
+					document.body.removeChild(el);
+					window.location.href = '/ky/';
+				};
+				if (navigator.clipboard) {
+					navigator.clipboard.writeText(key).then(function() {
+						window.location.href = '/ky/';
+					}).catch(fallback);
+				} else {
+					fallback();
+				}
+			}
+			</script>
 		`)
 	} else {
 		c.String(http.StatusOK, `

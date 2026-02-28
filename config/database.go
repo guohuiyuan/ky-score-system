@@ -24,7 +24,7 @@ var AppConfig AppConfigJSON
 // LoadConfig 从 data/config.json 读取全局配置（若不存在则从 config.example.json 复制）
 func LoadConfig() {
 	configPath := "data/config.json"
-	examplePath := "data/config.example.json"
+	examplePath := "config.example.json"
 
 	// 如果 config.json 不存在，从 example 复制一份
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
