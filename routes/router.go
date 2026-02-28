@@ -25,8 +25,6 @@ func SetupRouter() *gin.Engine {
 		app.GET("/login", handlers.LoginPage)
 		app.POST("/login", handlers.LoginAction)
 		app.GET("/logout", handlers.LogoutAction)
-		app.GET("/recover", handlers.RecoverKeyPage)
-		app.POST("/recover", handlers.RecoverKeyAction)
 
 		app.GET("/", handlers.IndexPage)        // 实时排行榜
 		app.GET("/submit", handlers.SubmitPage) // 填写分数页面
@@ -66,6 +64,7 @@ func SetupRouter() *gin.Engine {
 			// 新增 Excel 导入导出
 			adminAPI.GET("/excel-template", handlers.AdminDownloadExcelTemplate)
 			adminAPI.POST("/import-excel", handlers.AdminImportExcel)
+			adminAPI.GET("/export-excel", handlers.AdminExportExcel)
 		}
 	}
 

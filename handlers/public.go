@@ -1,14 +1,13 @@
 package handlers
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/guohuiyuan/ky-score-system/config"
 	"github.com/guohuiyuan/ky-score-system/models"
 	"gorm.io/datatypes"
@@ -73,19 +72,39 @@ func IndexPage(c *gin.Context) {
 		})
 	}
 
-	examName := examConfig.MajorName
-	if examName == "" {
-		examName = "考研"
+	// The original examName logic is replaced by using examConfig.MajorName directly in the title.
+	// The instruction implies `currentRecord` should be used, which maps to `userRecord` in the existing code.
+	// The instruction also implies `rankedRecords` and `dynamicFields` which map to `renderRecords` and `dynamicHeaders` respectively.
+
+	dirAlias := map[string]string{
+		"【本部】计算学部/未来技术学院-计算机科学与技术(学硕)": "本部·计科学硕",
+		"【本部】计算学部-软件工程(学硕)":            "本部·软工学硕",
+		"【本部】计算学部-智能科学与技术(087600)":     "本部·智科学硕",
+		"【本部】计算学部-计算机方向(专硕)":           "本部·计科专硕",
+		"【本部】计算学部-软件方向(专硕)":            "本部·软工专硕",
+		"【本部】计算学部-计算机方向(威海专硕)":         "威海·计科专",
+		"【深圳】计算机方向":                    "深圳·计科",
+		"【深圳】人工智能方向":                   "深圳·AI",
+		"【深圳】计算机方向(校企联培)":              "深圳·计科(联)",
+		"【深圳】AI智能(校企联培)":               "深圳·AI(联)",
+		"【威海】计算机方向":                    "威海·计科",
+		"【郑州】计算机方向":                    "郑州·计科",
+		"【郑州】软件方向":                     "郑州·软工",
+		"【重庆】计算机方向":                    "重庆·计科",
+		"【重庆】软件方向":                     "重庆·软工",
+		"【苏州】计算机方向":                    "苏州·计科",
+		"【苏州】软件方向":                     "苏州·软工",
 	}
 
 	// 渲染 HTML 模板
 	c.HTML(http.StatusOK, "public/index.tmpl", gin.H{
-		"Title":          "考研分数实时排行榜",
-		"ExamName":       examName,
-		"TotalCount":     len(records),
-		"DynamicHeaders": dynamicHeaders,
+		"Title":          examConfig.MajorName + " 实时成绩排名榜",
+		"ExamName":       examConfig.MajorName,
 		"Records":        renderRecords,
+		"DynamicHeaders": dynamicHeaders,
+		"TotalCount":     len(records),
 		"CurrentUser":    userRecord,
+		"DirAlias":       dirAlias,
 	})
 }
 
@@ -117,88 +136,6 @@ func LoginAction(c *gin.Context) {
 func LogoutAction(c *gin.Context) {
 	c.SetCookie("user_secret_key", "", -1, "/", "", false, true)
 	c.Redirect(http.StatusFound, "/ky/")
-}
-
-// RecoverKeyPage 找回密钥页面
-func RecoverKeyPage(c *gin.Context) {
-	var examConfig models.ExamConfig
-	if err := config.DB.First(&examConfig).Error; err != nil {
-		c.String(http.StatusOK, "系统错误，无法获取配置")
-		return
-	}
-
-	var recoveryKeys []string
-	if len(examConfig.KeyRecoveryFields) > 0 {
-		json.Unmarshal(examConfig.KeyRecoveryFields, &recoveryKeys)
-	}
-
-	var dynamicFields []map[string]interface{}
-	if len(examConfig.Fields) > 0 {
-		json.Unmarshal(examConfig.Fields, &dynamicFields)
-	}
-
-	// 筛出用于找回的配置字段
-	var recoverFieldsDesc []map[string]interface{}
-	for _, f := range dynamicFields {
-		for _, rk := range recoveryKeys {
-			if f["Key"] == rk {
-				recoverFieldsDesc = append(recoverFieldsDesc, f)
-			}
-		}
-	}
-
-	c.HTML(http.StatusOK, "public/recover.tmpl", gin.H{
-		"Title":         "找回密钥 - 哈工大计算机考研",
-		"RecoverFields": recoverFieldsDesc,
-	})
-}
-
-// RecoverKeyAction 找回密钥逻辑
-func RecoverKeyAction(c *gin.Context) {
-	var examConfig models.ExamConfig
-	config.DB.First(&examConfig)
-	var recoveryKeys []string
-	json.Unmarshal(examConfig.KeyRecoveryFields, &recoveryKeys)
-
-	// 获取所有的提交记录
-	var allRecords []models.ScoreRecord
-	config.DB.Find(&allRecords)
-
-	var foundKey string
-	for _, rec := range allRecords {
-		var dynData map[string]interface{}
-		json.Unmarshal(rec.DynamicData, &dynData)
-
-		matchCount := 0
-		for _, rk := range recoveryKeys {
-			// 将用户提交的字符串与存的 float64 比较
-			submittedVal := c.PostForm(rk)
-			if storedVal, ok := dynData[rk].(float64); ok {
-				if floatToStr(storedVal) == submittedVal {
-					matchCount++
-				}
-			} else if storedStr, ok := dynData[rk].(string); ok {
-				if storedStr == submittedVal {
-					matchCount++
-				}
-			}
-		}
-
-		if matchCount == len(recoveryKeys) && matchCount > 0 {
-			foundKey = rec.SecretKey
-			break
-		}
-	}
-
-	if foundKey != "" {
-		c.JSON(http.StatusOK, gin.H{"secret_key": foundKey})
-	} else {
-		c.JSON(http.StatusNotFound, gin.H{"error": "提供的成绩无法匹配到任何已存在的记录，请确认成绩完全一致。"})
-	}
-}
-
-func floatToStr(f float64) string {
-	return strconv.FormatFloat(f, 'f', -1, 64)
 }
 
 // SubmitPage 填写分数页面
@@ -253,48 +190,76 @@ func SubmitScore(c *gin.Context) {
 		}
 	}
 
-	if !isUpdate {
-		// 查重逻辑：提取找回字段并全库比对（防止同一个人拿同一个成绩跨专业或重复提交）
-		var examConfig models.ExamConfig
-		config.DB.First(&examConfig)
-		var recoveryKeys []string
-		json.Unmarshal(examConfig.KeyRecoveryFields, &recoveryKeys)
+	// 提取动态字段
+	dynamicMap := make(map[string]interface{})
+	fixedFields := []string{"exam_id", "major", "nickname", "ticket_prefix", "total_score", "secret_key", "proof"}
 
+	for key, values := range c.Request.PostForm {
+		if !isFixedField(key, fixedFields) && len(values) > 0 {
+			if valFloat, err := strconv.ParseFloat(values[0], 64); err == nil {
+				// 后端分值边界校验
+				if key == "politics" || key == "english" {
+					if valFloat < 0 || valFloat > 100 {
+						c.String(http.StatusBadRequest, "政治或英语成绩必须在0-100之间")
+						return
+					}
+				}
+				if key == "math" || key == "subject_408" {
+					if valFloat < 0 || valFloat > 150 {
+						c.String(http.StatusBadRequest, "数学或专业课成绩必须在0-150之间")
+						return
+					}
+				}
+				dynamicMap[key] = valFloat
+			} else {
+				dynamicMap[key] = values[0]
+			}
+		}
+	}
+
+	var examConfig models.ExamConfig
+	config.DB.First(&examConfig)
+	var recoveryKeys []string
+	json.Unmarshal(examConfig.KeyRecoveryFields, &recoveryKeys)
+
+	// 如果未携带有效 Cookie，则视为新提交，此时需要执行全局四科查重防御
+	if !isUpdate && len(recoveryKeys) > 0 {
 		var allRecords []models.ScoreRecord
 		config.DB.Find(&allRecords)
+
 		for _, rec := range allRecords {
-			var dynData map[string]interface{}
-			json.Unmarshal(rec.DynamicData, &dynData)
+			var storedDyn map[string]interface{}
+			json.Unmarshal(rec.DynamicData, &storedDyn)
 
 			matchCount := 0
 			for _, rk := range recoveryKeys {
-				submittedVal := c.PostForm(rk)
-				if storedVal, ok := dynData[rk].(float64); ok {
-					if floatToStr(storedVal) == submittedVal {
-						matchCount++
+				if storedVal, ok := storedDyn[rk].(float64); ok {
+					if submittedVal, ok := dynamicMap[rk].(float64); ok {
+						if storedVal == submittedVal {
+							matchCount++
+						}
 					}
-				} else if storedStr, ok := dynData[rk].(string); ok {
-					if storedStr == submittedVal {
-						matchCount++
+				} else if storedStr, ok := storedDyn[rk].(string); ok {
+					if submittedStr, ok := dynamicMap[rk].(string); ok {
+						if storedStr == submittedStr {
+							matchCount++
+						}
 					}
 				}
 			}
-			if len(recoveryKeys) > 0 && matchCount == len(recoveryKeys) {
-				c.Header("Content-Type", "text/html; charset=utf-8")
-				c.String(http.StatusConflict, `<div style="text-align:center; margin-top:50px; font-family:sans-serif;">
-					<h2 style="color:#dc3545;"><i class="bi bi-x-circle"></i> 提交失败：成绩查重拦截</h2>
-					<p>系统检测到完全相同的核心成绩组合已被录入！为了防刷榜，系统不允许重复提交。</p>
-					<p style="color:#666; font-size:0.9rem;">提示：如果您填错了想重填，请点击顶部导航的「验证身份」找回已有记录的专属密钥后，直接修改原记录。</p>
-					<a href="javascript:history.back()" style="padding:10px 20px; background:#0033a0; color:white; text-decoration:none; border-radius:5px; display:inline-block; margin-top:20px;">返回修改</a>
-				</div>`)
-				return
+
+			// 如果核心找回字段完全匹配 -> 触发【自动转为更新】机制
+			if matchCount == len(recoveryKeys) {
+				isUpdate = true
+				existingRecord = rec      // 直接复用之前的记录
+				secretKey = rec.SecretKey // 复用其密钥
+				break
 			}
 		}
+	}
 
-		// 生成 8 位十六进制安全密钥
-		bytes := make([]byte, 4)
-		rand.Read(bytes)
-		secretKey = hex.EncodeToString(bytes)
+	if !isUpdate { // 生成 UUID 作为安全密钥
+		secretKey = uuid.New().String()
 	}
 
 	proofPath, err := HandleProofUpload(c)
@@ -332,33 +297,6 @@ func SubmitScore(c *gin.Context) {
 		record.ProofImage = proofPath
 	}
 
-	// 提取动态字段
-	dynamicMap := make(map[string]interface{})
-	fixedFields := []string{"exam_id", "major", "nickname", "ticket_prefix", "total_score", "secret_key", "proof"}
-
-	for key, values := range c.Request.PostForm {
-		if !isFixedField(key, fixedFields) && len(values) > 0 {
-			if valFloat, err := strconv.ParseFloat(values[0], 64); err == nil {
-				// 后端分值边界校验
-				if key == "politics" || key == "english" {
-					if valFloat < 0 || valFloat > 100 {
-						c.String(http.StatusBadRequest, "政治或英语成绩必须在0-100之间")
-						return
-					}
-				}
-				if key == "math" || key == "subject_408" {
-					if valFloat < 0 || valFloat > 150 {
-						c.String(http.StatusBadRequest, "数学或专业课成绩必须在0-150之间")
-						return
-					}
-				}
-				dynamicMap[key] = valFloat
-			} else {
-				dynamicMap[key] = values[0]
-			}
-		}
-	}
-
 	dynamicBytes, _ := json.Marshal(dynamicMap)
 	record.DynamicData = datatypes.JSON(dynamicBytes)
 
@@ -393,11 +331,36 @@ func SubmitScore(c *gin.Context) {
 				<p>您的成绩已记录，正在等待核验。</p>
 				<div style="background:#fff3cd; border:1px solid #ffe69c; padding:20px; border-radius:8px; margin: 25px auto; max-width:400px; color:#664d03; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
 					<p style="margin:0 0 15px 0; font-weight:bold; font-size:1.1rem;">⚠️ 请务必保存您的专属修改密钥</p>
-					<h3 style="margin:0; font-family:monospace; font-size: 2.2rem; letter-spacing: 4px; user-select:all;">`+secretKey+`</h3>
+					<h3 style="margin:0; font-family:monospace; font-size: 1.5rem; letter-spacing: 2px; user-select:all;">`+secretKey+`</h3>
 					<p style="margin:15px 0 0 0; font-size:0.85rem; opacity:0.8;">这是您在其他设备上随时修改或删除成绩的唯一凭证！</p>
 				</div>
-				<a href="/ky/" style="padding:10px 20px; background:#0033a0; color:white; text-decoration:none; border-radius:5px; display:inline-block;">我已了解并复制，返回排名</a>
+				<a href="javascript:void(0);" onclick="copyAndRedirect('`+secretKey+`')" style="padding:10px 20px; background:#0033a0; color:white; text-decoration:none; border-radius:5px; display:inline-block;">我已了解并复制，返回排名</a>
 			</div>
+			<script>
+			function copyAndRedirect(key) {
+				var btn = document.querySelector('a[onclick]');
+				btn.innerText = '复制中...';
+				btn.style.pointerEvents = 'none';
+				
+				var fallback = function() {
+					var el = document.createElement('textarea');
+					el.value = key;
+					document.body.appendChild(el);
+					el.select();
+					try { document.execCommand('copy'); } catch(e) {}
+					document.body.removeChild(el);
+					window.location.href = '/ky/';
+				};
+				
+				if (navigator.clipboard) {
+					navigator.clipboard.writeText(key).then(function() {
+						window.location.href = '/ky/';
+					}).catch(fallback);
+				} else {
+					fallback();
+				}
+			}
+			</script>
 		`)
 	}
 }

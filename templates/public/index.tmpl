@@ -60,14 +60,23 @@
                     <tr>
                         <td class="text-muted fw-bold">{{$row.Rank}}</td>
                         <td class="text-start">{{$row.Nickname}}</td>
-                        <td class="text-purple fw-bold">{{$row.TotalScore}}</td>
                         
                         {{range $.DynamicHeaders}}
-                            <td>
+                            <td class="text-center align-middle">
                                 {{$val := index $row.DynamicData .Key}}
-                                {{if $val}}{{$val}}{{else}}<span class="text-muted">-</span>{{end}}
+                                {{if and $val (eq .Key "direction")}}
+                                    <span class="badge bg-light text-dark border truncate-badge" title="{{$val}}">
+                                        {{if index $.DirAlias $val}}{{index $.DirAlias $val}}{{else}}{{$val}}{{end}}
+                                    </span>
+                                {{else if $val}}
+                                    {{$val}}
+                                {{else}}
+                                    <span class="text-muted">-</span>
+                                {{end}}
                             </td>
                         {{end}}
+
+                        <td class="text-purple fw-bold text-center">{{$row.TotalScore}}</td>
 
                         <td>
                             {{if eq $row.Status "approved"}}
@@ -100,8 +109,51 @@
     table.dataTable thead th { border-bottom: none; }
     .page-item.active .page-link { background-color: var(--hit-blue); border-color: var(--hit-blue); }
     
-    /* 让表头搜索框紧凑点 */
-    .col-search-input { width: 100%; padding: 2px 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem; margin-top: 5px; color: #333; font-weight: normal; }
+    /* 移动端横向滚动与紧凑抗变形适配 */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    table.dataTable td, table.dataTable th {
+        white-space: nowrap !important;
+        vertical-align: middle;
+    }
+    .truncate-badge {
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: inline-block;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+    }
+    
+    /* 让表头下拉筛选框更美观且具现代感 */
+    .col-search-input { 
+        width: 100%; 
+        padding: 6px 10px; 
+        border: 1px solid #d2e3fc; 
+        border-radius: 6px; 
+        font-size: 0.85rem; 
+        margin-top: 6px; 
+        color: #495057; 
+        background-color: #f8fbff;
+        font-weight: 500;
+        outline: none;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        background-size: 10px 10px;
+        padding-right: 24px;
+    }
+    .col-search-input:focus {
+        border-color: var(--hit-blue);
+        box-shadow: 0 0 0 0.2rem rgba(0, 51, 160, 0.15);
+        background-color: white;
+    }
 </style>
 
 <script>
