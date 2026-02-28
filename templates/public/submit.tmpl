@@ -1,0 +1,159 @@
+{{define "public/submit.tmpl"}}
+{{template "header.tmpl" .}}
+
+<style>
+    .submit-card {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 20px rgba(0, 51, 160, 0.08);
+        transition: transform 0.2s ease-in-out;
+    }
+    .submit-card:hover {
+        transform: translateY(-2px);
+    }
+    .submit-card .card-header {
+        border-bottom: 2px solid #f0f2f5;
+        border-radius: 12px 12px 0 0 !important;
+        background-color: white;
+        padding-top: 1.25rem;
+        padding-bottom: 1rem;
+    }
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 0.6rem 1rem;
+        border: 1px solid #ced4da;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: var(--hit-blue);
+        box-shadow: 0 0 0 0.25rem rgba(0, 51, 160, 0.25);
+    }
+    .btn-submit-hero {
+        background-color: var(--hit-blue);
+        color: white;
+        border-radius: 8px;
+        padding: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+    }
+    .btn-submit-hero:hover {
+        background-color: #002277;
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 51, 160, 0.3);
+    }
+    @media (max-width: 576px) {
+        .card-body {
+            padding: 1.25rem;
+        }
+    }
+</style>
+
+<div class="row justify-content-center my-4">
+    <div class="col-lg-8 col-md-10">
+        <div class="card submit-card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0 pt-2 pb-2">填写考研分数</h5>
+            </div>
+            <div class="card-body">
+                <form action="/ky/api/submit" method="POST" enctype="multipart/form-data">
+                    
+                    <input type="hidden" name="exam_id" value="{{.ExamConfig.ID}}">
+
+                    <h6 class="text-muted border-bottom pb-2 mb-3">基本信息 (固定列)</h6>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">报考专业 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="major" value="{{.ExamConfig.MajorName}}" readonly required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ID (昵称) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="nickname" value="{{if .CurrentUser.ID}}{{.CurrentUser.Nickname}}{{end}}" placeholder="例如: 张三/z***" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">准考证后6位 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="ticket_prefix" maxlength="6" value="{{if .CurrentUser.ID}}{{.CurrentUser.TicketPrefix}}{{end}}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <!-- 空格占位，或者也可以把准考证放全宽 -->
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">成绩与情况 (动态列)</h6>
+
+                    <div class="row g-3">
+                        {{range .DynamicFields}}
+                        <div class="col-md-6">
+                            <label class="form-label">{{.Label}} <span class="text-danger">*</span></label>
+                            
+                            {{if eq .Type "select"}}
+                                {{$fieldKey := .Key}}
+                                <select class="form-select" name="{{.Key}}" required>
+                                    <option value="">请选择{{.Label}}</option>
+                                    {{range .Options}}
+                                    <option value="{{.}}" {{if $.CurrentDynamicData}}{{if eq (index $.CurrentDynamicData $fieldKey) .}}selected{{end}}{{end}}>{{.}}</option>
+                                    {{end}}
+                                </select>
+                            {{else}}
+                                {{$fieldKey := .Key}}
+                                <input type="number" class="form-control" name="{{.Key}}" step="0.5" 
+                                    {{if or (eq .Key "politics") (eq .Key "english")}}min="0" max="100" placeholder="0-100"{{else if or (eq .Key "math") (eq .Key "subject_408")}}min="0" max="150" placeholder="0-150"{{else}}min="0"{{end}}
+                                    value="{{if $.CurrentDynamicData}}{{index $.CurrentDynamicData $fieldKey}}{{end}}"
+                                    required>
+                            {{end}}
+                        </div>
+                        {{end}}
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">总分 <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control text-purple fw-bold" name="total_score" value="{{if .CurrentUser.ID}}{{.CurrentUser.TotalScore}}{{end}}" placeholder="自动计算或手动输入" required>
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">证明材料</h6>
+                    <div class="mb-4">
+                        <label class="form-label">成绩截图 (选填，用于管理员核验)</label>
+                        <input class="form-control" type="file" name="proof" accept="image/*">
+                    </div>
+
+                    <div class="d-grid gap-2 mt-2">
+                        <button type="submit" class="btn btn-submit-hero btn-lg">
+                            <i class="bi bi-cloud-arrow-up-fill me-1"></i> 提交成绩单
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 自动计算成绩功能
+    const inputs = document.querySelectorAll('input[type="number"]:not([name="total_score"])');
+    const totalInput = document.querySelector('input[name="total_score"]');
+
+    function calculateTotal() {
+        let sum = 0;
+        inputs.forEach(input => {
+            let val = parseFloat(input.value);
+            if (!isNaN(val)) sum += val;
+        });
+        // 只有当有实际输入时才去改变总分，避免覆盖用户故意输入的历史旧成绩如果他不想自动算
+        if (sum > 0 || (sum === 0 && Array.from(inputs).some(i => i.value !== ""))) {
+            totalInput.value = sum;
+        }
+    }
+
+    inputs.forEach(input => {
+        input.addEventListener('input', calculateTotal);
+        // 为了防止用户只是一键清除所有内容时不归零总分，这套逻辑会在触发 input 时自动更新总分
+    });
+});
+</script>
+
+{{template "footer.tmpl" .}}
+{{end}}

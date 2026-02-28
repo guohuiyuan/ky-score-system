@@ -1,0 +1,323 @@
+{{define "admin/dashboard.tmpl"}}
+{{template "header.tmpl" .}}
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body px-4 py-3">
+
+        <!-- 标题行 -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0 fw-bold" style="border-left: 4px solid var(--hit-blue); padding-left: 10px; color:#333;">
+                核验管理控制台
+            </h5>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted" style="font-size:0.85rem;">共 {{len .Records}} 条记录</span>
+                <a href="/ky/" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-list-ol me-1"></i>查看排名
+                </a>
+                <a href="/ky/admin/logout" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-box-arrow-right me-1"></i>退出登录
+                </a>
+            </div>
+        </div>
+
+        <!-- 搜索与筛选区 -->
+        <div class="card mb-4">
+            <div class="card-body p-3">
+                <form class="row g-2 align-items-center" method="GET" action="/ky/admin/dashboard">
+                    <div class="col-auto">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0" name="search" placeholder="搜昵称/准考证号" value="{{.SearchKw}}">
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <select class="form-select" name="status">
+                            <option value="">所有状态</option>
+                            <option value="pending"  {{if eq .StatusFilter "pending"}}selected{{end}}>待审核</option>
+                            <option value="approved" {{if eq .StatusFilter "approved"}}selected{{end}}>已通过</option>
+                            <option value="rejected" {{if eq .StatusFilter "rejected"}}selected{{end}}>已驳回</option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary px-4 shadow-sm" style="background: var(--hit-blue); border: none;">检索</button>
+                    </div>
+                    <div class="col-auto">
+                        <a href="/ky/admin/dashboard" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>重置
+                        </a>
+                    </div>
+                    
+                    <div class="col-auto ms-auto d-flex gap-2">
+                        <a href="/ky/api/admin/excel-template" class="btn btn-outline-success border-2 shadow-sm fw-bold">
+                            <i class="bi bi-file-earmark-excel me-1"></i>下载导入模板
+                        </a>
+                        <button type="button" class="btn btn-success shadow-sm fw-bold" onclick="showImportModal()">
+                            <i class="bi bi-upload me-1"></i>批量导入 Excel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 批量操作工具栏 -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-2">
+                <button class="batch-btn-approve" onclick="batchVerify('approved')">批量通过</button>
+                <button class="batch-btn-reject"  onclick="batchVerify('rejected')">批量驳回</button>
+                <button class="batch-btn-delete"  onclick="batchDelete()">批量删除</button>
+            </div>
+            <span class="text-muted" id="selectedCount" style="font-size:0.82rem;">已选 0 项记录</span>
+        </div>
+
+        <!-- 数据表格 -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center text-nowrap" style="font-size:0.85rem;">
+                <thead>
+                    <tr>
+                        <th style="width:36px;"><input type="checkbox" class="form-check-input" id="selectAll"></th>
+                        <th>时间</th>
+                        <th>专业</th>
+                        <th class="text-start">ID (昵称)</th>
+                        <th>准考证后6</th>
+                        <th>方向</th>
+                        <th>总分</th>
+                        <th>密钥</th>
+                        <th>IP地址</th>
+                        <th>截图</th>
+                        <th>当前状态</th>
+                        <th>管理操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range $index, $row := .Records}}
+                    <tr id="row-{{$row.ID}}">
+                        <td><input type="checkbox" class="form-check-input record-checkbox" value="{{$row.ID}}" onchange="updateSelectedCount()"></td>
+                        <td class="text-muted">{{$row.CreatedAt.Format "01-02 15:04"}}</td>
+                        <td><span class="fw-bold">{{$row.Major}}</span></td>
+                        <td class="text-start">{{$row.Nickname}}</td>
+                        <td style="color:#e74c3c; font-family:monospace;">{{$row.TicketPrefix}}</td>
+                        <td style="font-size: 0.82rem;">{{index $row.DynamicData "direction"}}</td>
+                        <td class="text-purple fw-bold">{{$row.TotalScore}}</td>
+                        <td>
+                            <span class="key-cell" title="{{$row.SecretKey}}">{{$row.SecretKey}}</span>
+                        </td>
+                        <td class="text-muted" style="font-size:0.8rem;">{{$row.IPAddress}}</td>
+                        <td>
+                            {{if $row.ProofImage}}
+                            <a href="{{$row.ProofImage}}" target="_blank" class="btn btn-sm btn-outline-secondary p-1" title="查看截图">
+                                <i class="bi bi-image"></i>
+                            </a>
+                            {{else}}
+                            <span class="text-muted">-</span>
+                            {{end}}
+                        </td>
+                        <td id="status-{{$row.ID}}">
+                            {{if eq $row.Status "approved"}}<span class="badge-approved"><i class="bi bi-check-circle-fill me-1"></i>已通过</span>
+                            {{else if eq $row.Status "rejected"}}<span class="badge-rejected"><i class="bi bi-x-circle-fill me-1"></i>已驳回</span>
+                            {{else}}<span class="badge-pending"><i class="bi bi-clock-fill me-1"></i>待核验</span>{{end}}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1 justify-content-center">
+                                <button class="btn-action-verify" onclick="updateStatus({{$row.ID}}, 'approved')">核验</button>
+                                <button class="btn-action-reject"  onclick="updateStatus({{$row.ID}}, 'rejected')">驳回</button>
+                                <button class="btn-action-delete"  onclick="deleteRecord({{$row.ID}})">删除</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {{end}}
+                    {{if not .Records}}
+                    <tr><td colspan="13" class="text-muted py-5">暂无数据，请先让同学提交分数</td></tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<!-- 图片预览 Modal -->
+<div class="modal fade" id="imgModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center pt-0">
+                <img id="modalImg" src="" alt="截图" class="img-fluid rounded">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Excel 导入 Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-success"><i class="bi bi-file-earmark-excel"></i> 批量导入成绩</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="importForm" onsubmit="event.preventDefault();">
+            <div class="mb-3">
+                <label for="excel_file" class="form-label text-muted">请先 <a href="/ky/api/admin/excel-template" class="text-success fw-bold text-decoration-none">下载模板</a> 并填写数据后再上传（.xlsx 格式，最大 10MB）</label>
+                <input class="form-control" type="file" id="excel_file" name="excel_file" accept=".xlsx" required>
+            </div>
+        </form>
+        <div id="importResult" class="d-none mt-3 p-3 rounded"></div>
+      </div>
+      <div class="modal-footer border-0 pb-0 pt-0">
+        <div class="w-100 d-grid">
+            <button type="button" class="btn btn-success btn-lg" id="btnUpload" onclick="uploadExcel()">
+                <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true" id="importSpinner"></span>开始导入
+            </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Lazy initialize modals
+let imgModalInstance;
+let importModalInstance;
+
+function showImage(src) {
+    if (!imgModalInstance) imgModalInstance = new bootstrap.Modal(document.getElementById('imgModal'));
+    document.getElementById('modalImg').src = src;
+    imgModalInstance.show();
+}
+
+function showImportModal() {
+    if (!importModalInstance) importModalInstance = new bootstrap.Modal(document.getElementById('importModal'));
+    document.getElementById('importResult').classList.add('d-none');
+    document.getElementById('importForm').reset();
+    importModalInstance.show();
+}
+
+function uploadExcel() {
+    const fileInput = document.getElementById('excel_file');
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert("请先选择 Excel 文件");
+        return;
+    }
+
+    const btn = document.getElementById('btnUpload');
+    const spinner = document.getElementById('importSpinner');
+    const resDiv = document.getElementById('importResult');
+
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    resDiv.classList.add('d-none');
+
+    const formData = new FormData();
+    formData.append("excel_file", fileInput.files[0]);
+
+    fetch('/ky/api/admin/import-excel', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json().then(data => ({status: res.status, body: data})))
+    .then(ret => {
+        resDiv.classList.remove('d-none');
+        if(ret.status === 200) {
+            resDiv.className = 'mt-3 p-3 rounded bg-success text-white fw-bold h5 text-center';
+            resDiv.innerHTML = `<i class="bi bi-check-circle me-1"></i> ${ret.body.message}`;
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            resDiv.className = 'mt-3 p-3 rounded bg-danger text-white fw-bold h6 text-center';
+            resDiv.innerHTML = `<i class="bi bi-x-circle me-1"></i> ${ret.body.error}`;
+        }
+    })
+    .catch(err => {
+        resDiv.classList.remove('d-none');
+        resDiv.className = 'mt-3 p-3 rounded bg-danger text-white text-center';
+        resDiv.innerHTML = '网络错误，上传失败';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        spinner.classList.add('d-none');
+    });
+}
+
+// 全选/反选
+document.getElementById('selectAll').addEventListener('change', function() {
+    document.querySelectorAll('.record-checkbox').forEach(cb => cb.checked = this.checked);
+    updateSelectedCount();
+});
+
+// 更新"已选 X 项"提示
+function updateSelectedCount() {
+    const n = document.querySelectorAll('.record-checkbox:checked').length;
+    document.getElementById('selectedCount').textContent = `已选 ${n} 项记录`;
+}
+
+// 获取选中 IDs
+function getSelectedIDs() {
+    return Array.from(document.querySelectorAll('.record-checkbox:checked')).map(cb => parseInt(cb.value));
+}
+
+// 单条状态更新
+function updateStatus(id, status) {
+    fetch(`/ky/admin/api/verify/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) { alert(data.error); return; }
+        const td = document.getElementById(`status-${id}`);
+        if (status === 'approved') {
+            td.innerHTML = '<span class="badge-approved"><i class="bi bi-check-circle-fill me-1"></i>已通过</span>';
+        } else {
+            td.innerHTML = '<span class="badge-rejected"><i class="bi bi-x-circle-fill me-1"></i>已驳回</span>';
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+// 删除记录
+function deleteRecord(id) {
+    if (!confirm('确定要删除这条记录吗？删除后无法恢复。')) return;
+    fetch(`/ky/admin/api/record/${id}`, { method: 'DELETE' })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) alert(data.error);
+        else document.getElementById(`row-${id}`).remove();
+    })
+    .catch(err => console.error(err));
+}
+
+// 批量审核
+function batchVerify(status) {
+    const ids = getSelectedIDs();
+    if (ids.length === 0) { alert('请先勾选要操作的记录'); return; }
+    const name = status === 'approved' ? '通过' : '驳回';
+    if (!confirm(`确定批量${name}选中的 ${ids.length} 条记录吗？`)) return;
+    fetch('/ky/admin/api/batch-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, status })
+    })
+    .then(res => res.json())
+    .then(data => { if (data.error) alert(data.error); else location.reload(); });
+}
+
+// 批量删除
+function batchDelete() {
+    const ids = getSelectedIDs();
+    if (ids.length === 0) { alert('请先勾选要操作的记录'); return; }
+    if (!confirm(`确定批量删除选中的 ${ids.length} 条记录吗？此操作无法恢复。`)) return;
+    fetch('/ky/admin/api/batch-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+    })
+    .then(res => res.json())
+    .then(data => { if (data.error) alert(data.error); else location.reload(); });
+}
+</script>
+
+{{template "footer.tmpl" .}}
+{{end}}

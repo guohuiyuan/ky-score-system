@@ -1,0 +1,47 @@
+{{define "public/login.tmpl"}}
+{{template "header.tmpl" .}}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card my-5 shadow-sm border-0">
+            <div class="card-body p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div style="width: 60px; height: 60px; background: #e8effa; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                        <i class="bi bi-shield-lock" style="font-size: 1.8rem; color: var(--hit-blue);"></i>
+                    </div>
+                    <h3 class="fw-bold" style="color: #333;">身份验证</h3>
+                    <p class="text-muted small">为了保护隐私，请先输入您的专属密钥以查看实时排名或修改成绩。</p>
+                </div>
+                
+                {{if .Error}}
+                <div class="alert alert-danger d-flex align-items-center mb-4 px-3 py-2" role="alert" style="font-size: 0.85rem;">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <div>{{.Error}}</div>
+                </div>
+                {{end}}
+
+                <form method="POST" action="/ky/login">
+                    <div class="mb-4">
+                        <label for="secret_key" class="form-label fw-bold text-secondary">专属密钥 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-lg" id="secret_key" name="secret_key" placeholder="请输入提交时填写的密钥" required>
+                    </div>
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary btn-lg" style="background: var(--hit-blue); border-color: var(--hit-blue);">进入系统</button>
+                    </div>
+                </form>
+
+                <div class="text-center mt-4 pt-3 border-top">
+                    <p class="text-muted small mb-1">忘记了密钥或首次使用？</p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="/ky/submit" class="text-decoration-none fw-bold" style="color: var(--hit-blue);"><i class="bi bi-pencil-square me-1"></i>去提交成绩</a>
+                        <span class="text-muted">|</span>
+                        <a href="/ky/recover" class="text-decoration-none fw-bold" style="color: var(--hit-blue);"><i class="bi bi-search me-1"></i>找回密钥</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{template "footer.tmpl" .}}
+{{end}}

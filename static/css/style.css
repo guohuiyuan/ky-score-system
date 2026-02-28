@@ -1,0 +1,48 @@
+/* static/css/style.css */
+
+body {
+    background-color: #f4f6f9; /* 柔和的浅灰背景 */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* 主题色 - 参考清华紫 */
+.text-purple {
+    color: #6f42c1 !important;
+}
+.bg-purple {
+    background-color: #6f42c1 !important;
+    color: white !important;
+}
+.bg-purple:hover {
+    background-color: #59339d !important;
+    color: white !important;
+}
+.border-purple {
+    border-color: #6f42c1 !important;
+}
+
+/* 卡片样式优化 */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border-radius: 0.5rem;
+    border: none;
+}
+
+/* 表格样式微调 */
+.table > :not(caption) > * > * {
+    padding: 0.85rem 0.5rem;
+    vertical-align: middle;
+}
+
+/* 表格行悬浮时带有微弱的紫色背景 */
+.table-hover tbody tr:hover {
+    background-color: rgba(111, 66, 193, 0.04); 
+}
+
+/* 按钮点击微动效 */
+.btn {
+    transition: all 0.2s ease-in-out;
+}
+.btn:active {
+    transform: scale(0.98);
+}
