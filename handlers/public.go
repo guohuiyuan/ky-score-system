@@ -321,6 +321,16 @@ func SubmitScore(c *gin.Context) {
 
 	totalScore, _ := strconv.Atoi(c.PostForm("total_score"))
 	examID, _ := strconv.Atoi(c.PostForm("exam_id"))
+	ip := c.GetHeader("X-Forwarded-For")
+	if ip != "" {
+		ip = strings.Split(ip, ",")[0]
+	}
+	if ip == "" {
+		ip = c.GetHeader("X-Real-IP")
+	}
+	if ip == "" {
+		ip = c.ClientIP()
+	}
 
 	record := models.ScoreRecord{
 		ExamID:       uint(examID),
@@ -329,7 +339,7 @@ func SubmitScore(c *gin.Context) {
 		TicketPrefix: c.PostForm("ticket_prefix"),
 		TotalScore:   totalScore,
 		SecretKey:    secretKey,
-		IPAddress:    c.ClientIP(),
+		IPAddress:    ip,
 		Status:       "pending",
 	}
 

@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,10 +16,35 @@ type IPRecord struct {
 
 var ipCache sync.Map
 
+// 获取真实 IP
+func getClientIP(c *gin.Context) string {
+	// 1. 尝试从 X-Forwarded-For 获取（可能包含多个 IP，取第一个非内网 IP 更准确，这里简单取第一个）
+	xForwardedFor := c.GetHeader("X-Forwarded-For")
+	if xForwardedFor != "" {
+		// X-Forwarded-For 格式: client, proxy1, proxy2
+		ips := strings.Split(xForwardedFor, ",")
+		if len(ips) > 0 {
+			ip := strings.TrimSpace(ips[0])
+			if ip != "" {
+				return ip
+			}
+		}
+	}
+
+	// 2. 尝试从 X-Real-IP 获取
+	xRealIP := c.GetHeader("X-Real-IP")
+	if xRealIP != "" {
+		return xRealIP
+	}
+
+	// 3. 降级为 Gin 解析的值
+	return c.ClientIP()
+}
+
 // SubmitLimit 限制同一 IP 的提交频率 (例如：60秒内只能提交一次)
 func SubmitLimit(cooldownSeconds int) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		clientIP := c.ClientIP()
+		clientIP := getClientIP(c)
 		now := time.Now()
 
 		// 查找该 IP 的记录
