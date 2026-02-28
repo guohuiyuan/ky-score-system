@@ -22,8 +22,11 @@ FROM alpine:latest
 # [新增] 替换为阿里云镜像源，解决 TLS 连接错误和速度慢的问题
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
-# Install ca-certificates for HTTPS requests
-RUN apk --no-cache add ca-certificates
+# Install ca-certificates for HTTPS requests and tzdata for timezone support
+RUN apk --no-cache add ca-certificates tzdata
+
+# Set timezone to Asia/Shanghai
+ENV TZ=Asia/Shanghai
 
 # Create a non-root user
 RUN adduser -D -s /bin/sh appuser

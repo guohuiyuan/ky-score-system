@@ -14,6 +14,13 @@ import (
 func SetupRouter(templatesFS embed.FS, staticFS embed.FS) *gin.Engine {
 	r := gin.Default()
 
+	// 配置获取真实 IP (解决 Nginx/Docker 环境下 c.ClientIP() 只有内网 IP 的问题)
+	r.ForwardedByClientIP = true
+	if err := r.SetTrustedProxies(nil); err != nil {
+		// SetTrustedProxies(nil) 意味着信任所有代理，由于只是记分系统通常可接受
+		// 也可以配置真实的代理 IP 如 []string{"192.168.0.0/16"}
+	}
+
 	// 1. 从嵌入的文件系统加载模板
 	subTemplatesFS, _ := fs.Sub(templatesFS, "templates")
 	tmpl := template.Must(template.New("").ParseFS(subTemplatesFS,
