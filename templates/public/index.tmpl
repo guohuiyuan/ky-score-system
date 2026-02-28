@@ -111,6 +111,26 @@
         </div>
     </div>
 
+    <!-- 用户状态提醒 -->
+    {{if .CurrentUser}}
+        {{if eq .CurrentUser.Status "rejected"}}
+        <div style="background:#fde8e8;border-bottom:1px solid #f5c6cb;padding:12px 20px;display:flex;align-items:center;gap:10px;">
+            <i class="bi bi-x-circle-fill" style="color:#dc3545;font-size:1.2rem;flex-shrink:0"></i>
+            <div style="font-size:0.85rem;color:#721c24;">
+                <strong>您的成绩未通过审核。</strong>未通过审核的成绩不会出现在排行榜中。如有疑问请联系管理员，或重新提交成绩。
+                <a href="/ky/submit" style="color:#dc3545;font-weight:600;margin-left:6px;">重新提交 →</a>
+            </div>
+        </div>
+        {{else if eq .CurrentUser.Status "pending"}}
+        <div style="background:#fff8e1;border-bottom:1px solid #ffe69c;padding:12px 20px;display:flex;align-items:center;gap:10px;">
+            <i class="bi bi-hourglass-split" style="color:#e6a700;font-size:1.1rem;flex-shrink:0"></i>
+            <div style="font-size:0.85rem;color:#664d03;">
+                <strong>您的成绩正在等待管理员审核。</strong>审核通过后才会出现在排行榜中，请耐心等待。
+            </div>
+        </div>
+        {{end}}
+    {{end}}
+
     <!-- 筛选栏 -->
     <form method="GET" action="/ky/" class="filter-bar" id="filterForm">
         <span class="filter-label"><i class="bi bi-funnel me-1"></i>筛选:</span>
