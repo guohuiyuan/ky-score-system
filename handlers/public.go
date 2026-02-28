@@ -221,35 +221,52 @@ func SubmitScore(c *gin.Context) {
 		}
 	}
 
-	// 提取动态字段
+	// 先加载字段配置以确定每个字段的类型
+	var examConfig models.ExamConfig
+	config.DB.First(&examConfig)
+	var dynamicFields []map[string]interface{}
+	json.Unmarshal(examConfig.Fields, &dynamicFields)
+
+	// 构建字段类型映射表: key -> "number" / "select" / ...
+	fieldTypeMap := make(map[string]string)
+	for _, f := range dynamicFields {
+		if k, ok := f["Key"].(string); ok {
+			if t, ok := f["Type"].(string); ok {
+				fieldTypeMap[k] = t
+			}
+		}
+	}
+
+	// 提取动态字段（根据类型决定存储为 float64 还是 string）
 	dynamicMap := make(map[string]interface{})
 	fixedFields := []string{"exam_id", "major", "nickname", "ticket_prefix", "total_score", "secret_key", "proof"}
 
 	for key, values := range c.Request.MultipartForm.Value {
 		if !isFixedField(key, fixedFields) && len(values) > 0 {
-			if valFloat, err := strconv.ParseFloat(values[0], 64); err == nil {
-				// 后端分值边界校验
-				if key == "politics" || key == "english" {
-					if valFloat < 0 || valFloat > 100 {
-						c.String(http.StatusBadRequest, "政治或英语成绩必须在0-100之间")
-						return
+			if fieldTypeMap[key] == "number" {
+				if valFloat, err := strconv.ParseFloat(values[0], 64); err == nil {
+					// 后端分值边界校验
+					if key == "politics" || key == "english" {
+						if valFloat < 0 || valFloat > 100 {
+							c.String(http.StatusBadRequest, "政治或英语成绩必须在0-100之间")
+							return
+						}
 					}
-				}
-				if key == "math" || key == "subject_408" {
-					if valFloat < 0 || valFloat > 150 {
-						c.String(http.StatusBadRequest, "数学或专业课成绩必须在0-150之间")
-						return
+					if key == "math" || key == "subject_408" {
+						if valFloat < 0 || valFloat > 150 {
+							c.String(http.StatusBadRequest, "数学或专业课成绩必须在0-150之间")
+							return
+						}
 					}
+					dynamicMap[key] = valFloat
 				}
-				dynamicMap[key] = valFloat
 			} else {
+				// select 等非数字类型始终存为字符串
 				dynamicMap[key] = values[0]
 			}
 		}
 	}
 
-	var examConfig models.ExamConfig
-	config.DB.First(&examConfig)
 	var recoveryKeys []string
 	json.Unmarshal(examConfig.KeyRecoveryFields, &recoveryKeys)
 
