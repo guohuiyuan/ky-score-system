@@ -194,7 +194,7 @@ func SubmitScore(c *gin.Context) {
 	dynamicMap := make(map[string]interface{})
 	fixedFields := []string{"exam_id", "major", "nickname", "ticket_prefix", "total_score", "secret_key", "proof"}
 
-	for key, values := range c.Request.PostForm {
+	for key, values := range c.Request.MultipartForm.Value {
 		if !isFixedField(key, fixedFields) && len(values) > 0 {
 			if valFloat, err := strconv.ParseFloat(values[0], 64); err == nil {
 				// 后端分值边界校验

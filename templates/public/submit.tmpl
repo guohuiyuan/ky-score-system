@@ -2,47 +2,77 @@
 {{template "header.tmpl" .}}
 
 <style>
-    .submit-card {
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 4px 20px rgba(0, 51, 160, 0.08);
-        transition: transform 0.2s ease-in-out;
+    body {
+        background-color: #f4f7fb;
     }
-    .submit-card:hover {
-        transform: translateY(-2px);
+    .submit-card {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0, 51, 160, 0.08);
+        overflow: hidden;
     }
     .submit-card .card-header {
-        border-bottom: 2px solid #f0f2f5;
-        border-radius: 12px 12px 0 0 !important;
-        background-color: white;
-        padding-top: 1.25rem;
-        padding-bottom: 1rem;
+        background: linear-gradient(135deg, var(--hit-blue) 0%, #0055ff 100%);
+        color: white;
+        padding: 1.5rem;
+        border: none;
+    }
+    .submit-card .card-header h5 {
+        font-weight: 700;
+        letter-spacing: 1px;
     }
     .form-control, .form-select {
-        border-radius: 8px;
-        padding: 0.6rem 1rem;
-        border: 1px solid #ced4da;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        border: 1px solid #e0e5ec;
+        background-color: #f8fafc;
+        transition: all 0.2s ease;
     }
     .form-control:focus, .form-select:focus {
+        background-color: #ffffff;
         border-color: var(--hit-blue);
-        box-shadow: 0 0 0 0.25rem rgba(0, 51, 160, 0.25);
+        box-shadow: 0 0 0 4px rgba(0, 51, 160, 0.1);
+    }
+    .form-label {
+        font-weight: 600;
+        color: #4a5568;
+        font-size: 0.9rem;
+        margin-bottom: 0.4rem;
+    }
+    .section-title {
+        color: var(--hit-blue);
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+    }
+    .section-title::after {
+        content: "";
+        flex: 1;
+        height: 2px;
+        background: #eef2f7;
+        margin-left: 15px;
+        border-radius: 2px;
     }
     .btn-submit-hero {
-        background-color: var(--hit-blue);
+        background: linear-gradient(135deg, var(--hit-blue), #0055ff);
         color: white;
-        border-radius: 8px;
+        border-radius: 10px;
         padding: 0.8rem;
         font-weight: 600;
         letter-spacing: 1px;
-        transition: all 0.3s ease;
+        border: none;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
     .btn-submit-hero:hover {
-        background-color: #002277;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 85, 255, 0.3);
         color: white;
-        box-shadow: 0 4px 12px rgba(0, 51, 160, 0.3);
     }
     @media (max-width: 576px) {
-        .card-body {
+        .submit-card .card-body {
             padding: 1.25rem;
         }
     }
@@ -51,15 +81,15 @@
 <div class="row justify-content-center my-4">
     <div class="col-lg-8 col-md-10">
         <div class="card submit-card">
-            <div class="card-header bg-white">
-                <h5 class="mb-0 pt-2 pb-2">填写考研分数</h5>
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>填写考研分数</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <form action="/ky/api/submit" method="POST" enctype="multipart/form-data">
                     
                     <input type="hidden" name="exam_id" value="{{.ExamConfig.ID}}">
 
-                    <h6 class="text-muted border-bottom pb-2 mb-3">基本信息 (固定列)</h6>
+                    <h6 class="section-title"><i class="bi bi-person-badge me-2"></i>基本信息 (固定项)</h6>
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -82,7 +112,7 @@
                         </div>
                     </div>
 
-                    <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">成绩与情况 (动态列)</h6>
+                    <h6 class="section-title"><i class="bi bi-bar-chart-line me-2"></i>成绩与情况 (动态项)</h6>
 
                     <div class="row g-3">
                         {{range .DynamicFields}}
@@ -113,7 +143,7 @@
                         </div>
                     </div>
 
-                    <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">证明材料</h6>
+                    <h6 class="section-title"><i class="bi bi-file-earmark-image me-2"></i>证明材料</h6>
                     <div class="mb-4">
                         <label class="form-label">成绩截图 (选填，用于管理员核验)</label>
                         <input class="form-control" type="file" name="proof" accept="image/*">
