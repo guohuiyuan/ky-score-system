@@ -102,9 +102,17 @@ document.addEventListener("DOMContentLoaded", function() {
         var chart = echarts.init(document.getElementById('chart-pie-{{.Key}}'));
         chart.setOption({
             tooltip: { trigger: 'item', formatter: '{b}: {c}人 ({d}%)' },
-            legend: { top: 'bottom' },
+            legend: { 
+                type: 'scroll', 
+                orient: 'horizontal', 
+                bottom: '0%', 
+                left: 'center', 
+                padding: [5, 10, 15, 10]
+            },
             series: [{
-                name: '{{.Label}}', type: 'pie', radius: ['40%', '70%'],
+                name: '{{.Label}}', type: 'pie', 
+                radius: ['35%', '60%'],
+                center: ['50%', '45%'],
                 itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
                 label: { show: true, formatter: '{b}\n{d}%', fontSize: 11, fontWeight: 'bold' },
                 data: data
