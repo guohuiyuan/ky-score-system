@@ -49,6 +49,7 @@ func SetupRouter(templatesFS embed.FS, staticFS embed.FS) *gin.Engine {
 		app.GET("/logout", handlers.LogoutAction)
 
 		app.GET("/", handlers.IndexPage)        // 实时排行榜
+		app.GET("/stats", handlers.StatsPage)   // 数据统计分析
 		app.GET("/submit", handlers.SubmitPage) // 填写分数页面
 
 		// 提交接口挂载 IP 限流中间件 (限制 60 秒一次)

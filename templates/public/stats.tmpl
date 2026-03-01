@@ -1,0 +1,153 @@
+{{define "public/stats.tmpl"}}
+{{template "header.tmpl" .}}
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+
+<style>
+    .stats-card { border: none; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,51,160,0.07); }
+    .stats-hero {
+        background: linear-gradient(135deg, var(--hit-blue) 0%, #1a5cff 100%);
+        color: white; padding: 1.5rem 1.8rem;
+    }
+    .stats-hero h4 { font-weight: 700; margin: 0; }
+    .stats-hero .sub { opacity: 0.8; font-size: 0.8rem; margin-top: 2px; }
+    
+    .summary-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    .summary-table th { background: #f8fafd; color: #555; font-size: 0.82rem; padding: 10px; border-bottom: 2px solid #eef2f7; text-align: center; white-space: nowrap; }
+    .summary-table td { padding: 10px; font-size: 0.95rem; font-weight: 600; text-align: center; border-bottom: 1px solid #f0f2f5; }
+    .val-max { color: #dc3545; }
+    .val-min { color: #198754; }
+    .val-avg { color: var(--hit-blue); }
+
+    .chart-container { height: 350px; width: 100%; }
+    .chart-card { background: #fff; border: 1px solid #eef2f7; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+    .chart-title { font-size: 1rem; font-weight: 700; color: #333; margin-bottom: 15px; border-left: 4px solid var(--hit-blue); padding-left: 10px; }
+</style>
+
+<div class="stats-card card mb-4">
+    <!-- 页头 -->
+    <div class="stats-hero d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h4><i class="bi bi-bar-chart-fill me-2" style="opacity:0.85"></i>数据统计分析</h4>
+            <div class="sub">{{.ExamName}} - 共有 {{.Count}} 条有效成绩记录</div>
+        </div>
+        <button class="btn btn-sm text-white" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:0.8rem;" onclick="location.reload()">
+            <i class="bi bi-arrow-clockwise"></i> 刷新数据
+        </button>
+    </div>
+
+    <div class="card-body p-4 bg-light">
+        <!-- 概览表格 -->
+        <div class="chart-card">
+            <div class="chart-title">各科极值与平均分概览</div>
+            <div class="table-responsive">
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>科目</th>
+                            <th>最低分</th>
+                            <th>平均分</th>
+                            <th>最高分</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .NumberStats}}
+                        <tr>
+                            <td class="text-secondary">{{.Label}}</td>
+                            <td class="val-min">{{printf "%.1f" .Min}}</td>
+                            <td class="val-avg">{{printf "%.1f" .Avg}}</td>
+                            <td class="val-max">{{printf "%.1f" .Max}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- 扇形图 (选择型字段) -->
+            {{range .SelectStats}}
+            <div class="col-md-6 col-lg-4">
+                <div class="chart-card">
+                    <div class="chart-title">{{.Label}} 占比</div>
+                    <div id="chart-pie-{{.Key}}" class="chart-container"></div>
+                </div>
+            </div>
+            {{end}}
+
+            <!-- 柱状图 (数值型分布) -->
+            {{range .NumberStats}}
+            <div class="col-md-6 col-lg-4">
+                <div class="chart-card">
+                    <div class="chart-title">{{.Label}} 分数段分布</div>
+                    <div id="chart-bar-{{.Key}}" class="chart-container"></div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 渲染饼图
+    {{range .SelectStats}}
+    (function(){
+        var dist = {{.Counts}};
+        var data = [];
+        for (var k in dist){ 
+            var labelName = k === "" ? "未填/其他" : k;
+            data.push({name: labelName, value: dist[k]}); 
+        }
+        var chart = echarts.init(document.getElementById('chart-pie-{{.Key}}'));
+        chart.setOption({
+            tooltip: { trigger: 'item', formatter: '{b}: {c}人 ({d}%)' },
+            legend: { top: 'bottom' },
+            series: [{
+                name: '{{.Label}}', type: 'pie', radius: ['40%', '70%'],
+                itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+                label: { show: true, formatter: '{b}\n{d}%', fontSize: 11, fontWeight: 'bold' },
+                data: data
+            }]
+        });
+        window.addEventListener('resize', function(){ chart.resize(); });
+    })();
+    {{end}}
+
+    // 渲染柱状图
+    {{range .NumberStats}}
+    (function(){
+        var distRaw = {{index $.DistData .Key}};
+        // 对键名进行排序 (例如 "120-130", "130-140")
+        var keys = Object.keys(distRaw).sort(function(a, b){
+            return parseInt(a.split("-")[0]) - parseInt(b.split("-")[0]);
+        });
+        var vals = keys.map(function(k){ return distRaw[k]; });
+
+        var chart = echarts.init(document.getElementById('chart-bar-{{.Key}}'));
+        chart.setOption({
+            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+            xAxis: { type: 'category', data: keys, axisLabel: { interval: 0, rotate: 30 } },
+            yAxis: { type: 'value', minInterval: 1 },
+            series: [{
+                name: '人数', type: 'bar', data: vals,
+                barWidth: '60%',
+                label: { show: true, position: 'top', color: '#1a5cff', fontWeight: 'bold' },
+                itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        {offset: 0, color: '#1a5cff'},
+                        {offset: 1, color: '#0033a0'}
+                    ]),
+                    borderRadius: [4, 4, 0, 0]
+                }
+            }]
+        });
+        window.addEventListener('resize', function(){ chart.resize(); });
+    })();
+    {{end}}
+});
+</script>
+
+{{template "footer.tmpl" .}}
+{{end}}

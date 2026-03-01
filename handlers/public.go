@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -461,4 +462,146 @@ func isFixedField(key string, fixedFields []string) bool {
 		}
 	}
 	return false
+}
+
+// StatsPage 数据统计分析大盘页面
+func StatsPage(c *gin.Context) {
+	var examConfig models.ExamConfig
+	if err := config.DB.First(&examConfig).Error; err != nil {
+		c.String(http.StatusOK, "系统尚未配置此数据")
+		return
+	}
+
+	var dynamicFields []map[string]interface{}
+	if len(examConfig.Fields) > 0 {
+		json.Unmarshal(examConfig.Fields, &dynamicFields)
+	}
+
+	var records []models.ScoreRecord
+	config.DB.Where("status = ?", "approved").Find(&records)
+
+	// 计算所需指标结构
+	type NumberStat struct {
+		Key   string
+		Label string
+		Max   float64
+		Min   float64
+		Avg   float64
+		Data  []float64 // 供后续如果前端要画分布直方图备用，或用来生成区间段
+	}
+	type SelectStat struct {
+		Key    string
+		Label  string
+		Counts map[string]int
+	}
+
+	numberStats := make(map[string]*NumberStat)
+	selectStats := make(map[string]*SelectStat)
+
+	// 初始化 TotalScore 统计
+	numberStats["total_score"] = &NumberStat{Key: "total_score", Label: "总分", Min: -1}
+
+	// 遍历定义初始化
+	for _, f := range dynamicFields {
+		key := f["Key"].(string)
+		label := f["Label"].(string)
+		fType := f["Type"].(string)
+
+		if fType == "number" {
+			numberStats[key] = &NumberStat{Key: key, Label: label, Min: -1}
+		} else if fType == "select" {
+			selectStats[key] = &SelectStat{Key: key, Label: label, Counts: make(map[string]int)}
+		}
+	}
+
+	// 遍历所有数据聚合计算
+	for _, r := range records {
+		// 总分
+		ts := float64(r.TotalScore)
+		ns := numberStats["total_score"]
+		ns.Data = append(ns.Data, ts)
+		ns.Avg += ts
+		if ns.Min == -1 || ts < ns.Min {
+			ns.Min = ts
+		}
+		if ts > ns.Max {
+			ns.Max = ts
+		}
+
+		var dynData map[string]interface{}
+		json.Unmarshal(r.DynamicData, &dynData)
+
+		for key, val := range dynData {
+			if numStat, ok := numberStats[key]; ok {
+				if numVal, isNum := val.(float64); isNum {
+					numStat.Data = append(numStat.Data, numVal)
+					numStat.Avg += numVal
+					if numStat.Min == -1 || numVal < numStat.Min {
+						numStat.Min = numVal
+					}
+					if numVal > numStat.Max {
+						numStat.Max = numVal
+					}
+				}
+			} else if selStat, ok := selectStats[key]; ok {
+				if strVal, isStr := val.(string); isStr {
+					selStat.Counts[strVal]++
+				}
+			}
+		}
+	}
+
+	// 计算平均分
+	totalCount := float64(len(records))
+	if totalCount > 0 {
+		for _, stat := range numberStats {
+			if len(stat.Data) > 0 {
+				stat.Avg = stat.Avg / float64(len(stat.Data))
+			} else {
+				stat.Avg = 0
+			}
+			if stat.Min == -1 {
+				stat.Min = 0
+			}
+		}
+	}
+
+	// 分数段生成函数 (将具体数字列表划分为10分的区间段，用于柱状图)
+	generateDistribution := func(data []float64, interval int) map[string]int {
+		dist := make(map[string]int)
+		for _, v := range data {
+			lower := (int(v) / interval) * interval
+			upper := lower + interval
+			key := fmt.Sprintf("%d-%d", lower, upper)
+			dist[key]++
+		}
+		return dist
+	}
+
+	// 生成分布图数据
+	distData := make(map[string]map[string]int)
+	for key, stat := range numberStats {
+		// 总分可以分段大一点，单科10分一段
+		interval := 10
+		if key == "total_score" {
+			interval = 20
+		}
+		distData[key] = generateDistribution(stat.Data, interval)
+	}
+
+	var userRecord models.ScoreRecord
+	secretKey, err := c.Cookie("user_secret_key")
+	if err == nil && secretKey != "" {
+		config.DB.Where("secret_key = ?", secretKey).First(&userRecord)
+	}
+
+	c.HTML(http.StatusOK, "public/stats.tmpl", gin.H{
+		"Title":       "数据统计分析 - " + examConfig.MajorName,
+		"ExamName":    examConfig.MajorName,
+		"NumberStats": numberStats,
+		"SelectStats": selectStats,
+		"DistData":    distData,
+		"Count":       len(records),
+		"CurrentUser": userRecord,
+	})
 }

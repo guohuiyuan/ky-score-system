@@ -128,7 +128,10 @@
             <ul class="navbar-nav ms-auto align-items-center">
                 {{if .CurrentUser}}
                 <li class="nav-item">
-                    <a class="nav-link fw-bold text-hit-blue" href="/ky/" style="color:var(--hit-blue) !important;"><i class="bi bi-trophy me-1"></i>查看排名</a>
+                    <a class="nav-link fw-bold" href="/ky/" style="{{if eq .Title (print .ExamName " 实时成绩排名榜")}}color:var(--hit-blue) !important;{{end}}"><i class="bi bi-trophy me-1"></i>查看排名</a>
+                </li>
+                <li class="nav-item ms-lg-2">
+                    <a class="nav-link fw-bold" href="/ky/stats" style="{{if eq .Title (print "数据统计分析 - " .ExamName)}}color:var(--hit-blue) !important;{{end}}"><i class="bi bi-bar-chart-fill me-1"></i>数据统计</a>
                 </li>
                 <li class="nav-item ms-lg-3">
                     <a class="btn btn-fill-score shadow-sm" href="/ky/submit"><i class="bi bi-pencil-square me-1"></i>更新分数</a>
@@ -138,7 +141,7 @@
                 </li>
                 {{else}}
                 <li class="nav-item">
-                    <a class="nav-link fw-bold text-hit-blue" href="/ky/login" style="color:var(--hit-blue) !important;"><i class="bi bi-shield-lock me-1"></i>验证身份 / 查排名</a>
+                    <a class="nav-link fw-bold" href="/ky/login" style="color:var(--hit-blue) !important;"><i class="bi bi-shield-lock me-1"></i>验证身份 / 查排名</a>
                 </li>
                 <li class="nav-item ms-lg-3">
                     <a class="btn btn-fill-score shadow-sm" href="/ky/submit"><i class="bi bi-pencil-square me-1"></i>首次填写分数</a>
