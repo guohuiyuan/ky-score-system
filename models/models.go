@@ -31,6 +31,7 @@ type ScoreRecord struct {
 	IPAddress    string `gorm:"size:50;comment:提交者IP"`
 	ProofImage   string `gorm:"size:255;comment:截图相对路径"`
 	Status       string `gorm:"size:20;default:'pending';comment:状态: pending/approved/rejected"`
+	RejectReason string `gorm:"size:255;comment:驳回理由"`
 
 	// DynamicData 存储用户提交的动态分数/选项，例如:
 	// {"math": 135, "politics": 68, "attempt": "二战"}

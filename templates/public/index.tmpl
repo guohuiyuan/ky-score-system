@@ -117,8 +117,12 @@
         <div style="background:#fde8e8;border-bottom:1px solid #f5c6cb;padding:12px 20px;display:flex;align-items:center;gap:10px;">
             <i class="bi bi-x-circle-fill" style="color:#dc3545;font-size:1.2rem;flex-shrink:0"></i>
             <div style="font-size:0.85rem;color:#721c24;">
-                <strong>您的成绩未通过审核。</strong>未通过审核的成绩不会出现在排行榜中。如有疑问请联系管理员，或重新提交成绩。
-                <a href="/ky/submit" style="color:#dc3545;font-weight:600;margin-left:6px;">重新提交 →</a>
+                <strong>您的成绩未通过审核。</strong>
+                {{if .CurrentUser.RejectReason}}
+                原因：{{.CurrentUser.RejectReason}}。
+                {{end}}
+                未通过审核的成绩不会出现在排行榜中，请修改后重新提交。
+                <a href="/ky/submit" style="color:#dc3545;font-weight:600;margin-left:6px;">去修改 →</a>
             </div>
         </div>
         {{else if eq .CurrentUser.Status "pending"}}

@@ -200,6 +200,26 @@
   </div>
 </div>
 
+<!-- 驳回理由输入 Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px;overflow:hidden">
+      <div class="modal-header" style="background:#fde8e8;border-bottom:none">
+        <h5 class="modal-title fw-bold" style="color:#dc3545"><i class="bi bi-x-circle-fill me-1"></i> 填写驳回理由</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label text-muted" style="font-size:0.85rem">请输入驳回理由（可选，前台用户将看到此原因）：</label>
+        <textarea id="rejectReasonInput" class="form-control" rows="3" placeholder="例如：截图不清晰、总分填写错误等..." style="border-radius:8px;resize:none;"></textarea>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius:8px">取消</button>
+        <button type="button" class="btn btn-danger fw-bold" id="btnConfirmReject" style="border-radius:8px">确定驳回</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 let imgModalInstance, importModalInstance;
 
@@ -240,23 +260,66 @@ function updateSelectedCount() {
 function getSelectedIDs() {
     return Array.from(document.querySelectorAll('.record-checkbox:checked')).map(cb => parseInt(cb.value));
 }
+function showRejectModal(callback) {
+    const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+    const input = document.getElementById('rejectReasonInput');
+    const btnConfirm = document.getElementById('btnConfirmReject');
+    
+    input.value = ''; // 清空上次输入
+    
+    // 移除之前的事件监听，防止多次绑定
+    const newBtnConfirm = btnConfirm.cloneNode(true);
+    btnConfirm.parentNode.replaceChild(newBtnConfirm, btnConfirm);
+    
+    newBtnConfirm.addEventListener('click', () => {
+        modal.hide();
+        callback(input.value.trim());
+    });
+    
+    modal.show();
+}
+
 function updateStatus(id, status) {
-    fetch(`/ky/admin/api/verify/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status})})
+    if (status === 'rejected') {
+        showRejectModal((reason) => {
+            executeVerify(id, status, reason);
+        });
+    } else {
+        executeVerify(id, status, "");
+    }
+}
+
+function executeVerify(id, status, reason) {
+    fetch(`/ky/admin/api/verify/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status, reason})})
     .then(r=>r.json()).then(d=>{
         if(d.error){alert(d.error);return;}
         const td=document.getElementById(`status-${id}`);
         td.innerHTML=status==='approved'?'<span class="badge-approved"><i class="bi bi-check-circle-fill me-1"></i>通过</span>':'<span class="badge-rejected"><i class="bi bi-x-circle-fill me-1"></i>驳回</span>';
     });
 }
+
 function deleteRecord(id) {
     if(!confirm('确定删除？'))return;
     fetch(`/ky/admin/api/record/${id}`,{method:'DELETE'}).then(r=>r.json()).then(d=>{if(d.error)alert(d.error);else document.getElementById(`row-${id}`).remove();});
 }
+
 function batchVerify(status) {
     const ids=getSelectedIDs();if(!ids.length){alert('请先勾选');return;}
-    if(!confirm(`确定批量${status==='approved'?'通过':'驳回'}${ids.length}条？`))return;
-    fetch('/ky/admin/api/batch-verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids,status})}).then(r=>r.json()).then(d=>{if(d.error)alert(d.error);else location.reload();});
+    if (status === 'rejected') {
+        showRejectModal((reason) => {
+            executeBatchVerify(ids, status, reason);
+        });
+    } else {
+        if(!confirm(`确定批量通过 ${ids.length} 条记录吗？`))return;
+        executeBatchVerify(ids, status, "");
+    }
 }
+
+function executeBatchVerify(ids, status, reason) {
+    fetch('/ky/admin/api/batch-verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids,status,reason})})
+    .then(r=>r.json()).then(d=>{if(d.error)alert(d.error);else location.reload();});
+}
+
 function batchDelete() {
     const ids=getSelectedIDs();if(!ids.length){alert('请先勾选');return;}
     if(!confirm(`确定批量删除${ids.length}条？`))return;

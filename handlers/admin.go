@@ -158,6 +158,7 @@ func AdminVerifyRecord(c *gin.Context) {
 
 	var req struct {
 		Status string `json:"status" binding:"required,oneof=approved rejected"`
+		Reason string `json:"reason"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -165,7 +166,12 @@ func AdminVerifyRecord(c *gin.Context) {
 		return
 	}
 
-	result := config.DB.Model(&models.ScoreRecord{}).Where("id = ?", id).Update("status", req.Status)
+	updates := map[string]interface{}{
+		"status":        req.Status,
+		"reject_reason": req.Reason,
+	}
+
+	result := config.DB.Model(&models.ScoreRecord{}).Where("id = ?", id).Updates(updates)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新失败"})
 		return
@@ -193,6 +199,7 @@ func AdminBatchVerify(c *gin.Context) {
 	var req struct {
 		IDs    []uint `json:"ids" binding:"required"`
 		Status string `json:"status" binding:"required,oneof=approved rejected"`
+		Reason string `json:"reason"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -200,7 +207,12 @@ func AdminBatchVerify(c *gin.Context) {
 		return
 	}
 
-	result := config.DB.Model(&models.ScoreRecord{}).Where("id IN ?", req.IDs).Update("status", req.Status)
+	updates := map[string]interface{}{
+		"status":        req.Status,
+		"reject_reason": req.Reason,
+	}
+
+	result := config.DB.Model(&models.ScoreRecord{}).Where("id IN ?", req.IDs).Updates(updates)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "批量更新失败"})
 		return
