@@ -128,7 +128,12 @@
                         </td>
                     {{end}}
                     <td class="fw-bold" style="color:var(--hit-blue)">{{$row.TotalScore}}</td>
-                    <td><span class="key-cell" title="{{$row.SecretKey}}">{{$row.SecretKey}}</span></td>
+                    <td style="white-space:nowrap">
+                        <span class="badge bg-light text-secondary border fw-normal" style="font-family:monospace;font-size:0.75rem;padding:4px 6px;" title="{{$row.SecretKey}}">
+                            {{if gt (len $row.SecretKey) 8}}{{slice $row.SecretKey 0 8}}…{{else}}{{$row.SecretKey}}{{end}}
+                        </span>
+                        <button class="btn btn-sm btn-outline-secondary p-1 ms-1" style="line-height:1;border-color:#dee2e6;color:#6c757d;" title="复制密钥" onclick="copyKey(this,'{{$row.SecretKey}}')"><i class="bi bi-files" style="font-size:0.7rem;"></i></button>
+                    </td>
                     <td class="text-muted" style="font-size:0.76rem">{{$row.IPAddress}}</td>
                     <td>
                         {{if $row.ProofImage}}
@@ -256,6 +261,27 @@ function batchDelete() {
     const ids=getSelectedIDs();if(!ids.length){alert('请先勾选');return;}
     if(!confirm(`确定批量删除${ids.length}条？`))return;
     fetch('/ky/admin/api/batch-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})}).then(r=>r.json()).then(d=>{if(d.error)alert(d.error);else location.reload();});
+}
+function copyKey(btn, key) {
+    const fallback = () => {
+        const el = document.createElement('textarea');
+        el.value = key;
+        document.body.appendChild(el);
+        el.select();
+        try { document.execCommand('copy'); } catch(e) {}
+        document.body.removeChild(el);
+        showCopySuccess(btn);
+    };
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(key).then(() => showCopySuccess(btn)).catch(fallback);
+    } else {
+        fallback();
+    }
+}
+function showCopySuccess(btn) {
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check2" style="font-size:0.8rem;color:#198754;font-weight:bold;"></i>';
+    setTimeout(() => { btn.innerHTML = originalHtml; }, 1500);
 }
 </script>
 
